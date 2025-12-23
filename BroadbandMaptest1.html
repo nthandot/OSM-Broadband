@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Opportunity Mapping: Broadband Access</title>
+
+  <!-- Leaflet CSS -->
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    crossorigin="anonymous"
+  />
+  <!-- Leaflet Sidebar CSS -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet-sidebar-v2/css/leaflet-sidebar.min.css" />
+  <!-- Material Icons -->
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+  <!-- Custom CSS -->
+  <link rel="stylesheet" href="./css/style_file.css" />
+  
+  <!-- Leaflet JS -->
+  <script
+    src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+    crossorigin="anonymous"
+  ></script>
+  <!-- Leaflet Sidebar JS -->
+  <script src="https://cdn.jsdelivr.net/npm/leaflet-sidebar-v2/js/leaflet-sidebar.min.js"></script>
+  
+</head>
+<body>
+  <div class="map-title">Broadband Access and Low Opportunity Areas</div>
+  <div id="map"></div>
+  
+  <!-- Leaflet Sidebar -->
+  <div id="sidebar" class="leaflet-sidebar collapsed">
+    <!-- Navigation Tabs -->
+    <div class="leaflet-sidebar-tabs">
+      <ul role="tablist">
+        <li><a href="#layers" role="tab"><i class="material-icons">layers</i></a></li>
+        <li><a href="#legend" role="tab"><i class="material-icons">format_list_bulleted</i></a></li>
+        <li><a href="#info" role="tab"><i class="material-icons">info</i></a></li>
+      </ul>
+    </div>
+
+    <!-- Panel Content -->
+    <div class="leaflet-sidebar-content">
+      <div class="leaflet-sidebar-pane" id="layers">
+        <h2 class="leaflet-sidebar-header">
+          Layer Controls
+          <span class="leaflet-sidebar-close"><i class="material-icons">close</i></span>
+        </h2>
+        <div class="sidebar-content">
+          <select id="layerDropdown" class="sidebar-select">
+            <option value="">-- Select a Layer --</option>
+          </select>
+          <button id="addLayerBtn" class="sidebar-button">Add Layer</button>
+          <button id="removeLayerBtn" class="sidebar-button">Remove Layer</button>
+        </div>
+      </div>
+
+      <div class="leaflet-sidebar-pane" id="legend">
+        <h2 class="leaflet-sidebar-header">
+          Legend
+          <span class="leaflet-sidebar-close"><i class="material-icons">close</i></span>
+        </h2>
+        <div class="sidebar-content">
+          <div class="legend-item">
+            <span class="legend-color" style="background: #e41a1c;"></span>
+            <span>Broadband Under 10 Mbps + Low Opportunity</span><br>
+          </div>
+          <p class="legend-section-desc">
+            All census tracts include at least one census block with broadband speeds below 10 Mbps and are located in areas with low opportunity indicators.
+          </p>
+
+          <div class="legend-item">
+            <span class="legend-color" style="background: #377eb8;"></span>
+            <span>Broadband 10 Mbps to 25 Mbps + Low Opportunity</span>
+            </div>
+            <p class="legend-section-desc">
+              All census tracts include at least one census block with broadband speeds between 10 Mbps and 25 Mbps 
+              and are located in areas with low opportunity indicators.
+            </p>
+         
+            <div class="legend-item">
+            <span class="legend-color" style="background: #4daf4a;"></span>
+            <span>Broadband Low-Fiber Deployment + Low Opportunity</span>
+            </div>
+            <p class="legend-section-desc">
+              Low Fiber census tracts are defined by tracts that have less than 30% of households 
+              in the tract with access to fiber broadband and are located in areas with low opportunity indicators.
+              The 30% threshold is based on the the natural breaks using Jenks classification method.</p>
+          
+            <div class="legend-item">
+            <span class="legend-color" style="background: #984ea3;"></span>
+            <span>Broadband Fiber Spatial Clustering + Low Opportunity</span>
+            </div>
+            <p class="legend-section-desc">
+              A spatial analysis examining the percent of households with fiber broadband access using Anselin Local Moran's I 
+              to determine tracts that are considered "Low / Low" signifying low broadband access tracts next to other low fiber broadband 
+              access tracts</p>
+        </div>
+      </div>
+
+      <div class="leaflet-sidebar-pane" id="info">
+        <h2 class="leaflet-sidebar-header">
+          Information
+          <span class="leaflet-sidebar-close"><i class="material-icons">close</i></span>
+        </h2>
+        <div class="sidebar-content">
+          <p>This map shows the relationship between broadband access and areas of opportunity in California.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Link external JS -->
+  <script src="./js/gislayers.js"></script>
+</body>
+</html>
