@@ -1,0 +1,89 @@
+# Sync geojson and other assets to S3 on push to main.
+# - gzips .geojson files on the runner and uploads them with Content-Encoding: gzip
+# - uploads other static assets (docs/ or site_assets/) with sensible cache headers
+# - optional CloudFront invalidation (set CLOUDFRONT_DISTRIBUTION_ID secret)
+name: Sync data to S3
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  deploy-data:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Show git status (debug)
+        run: |
+          git branch --show-current
+          git rev-parse --short HEAD
+          ls -la
+
+      - name: Gzip .geojson files in-place (create gzipped bytes but keep same filename)
+        # This compresses each .geojson, replacing the file contents with gzip'd bytes
+        # so we can upload the file under the same filename and set content-encoding=gzip.
+        run: |
+          set -euo pipefail
+          # find all .geojson files; parallel gzip up to 4 at a time
+          find data -type f -name '*.geojson' -print0 | \
+            xargs -0 -n1 -P4 bash -c 'f="$0"; \
+              echo "Gzipping $f"; \
+              gzip -9 -c "$f" > "$f.gz" && mv "$f.gz" "$f"'
+
+      - name: Upload .geojson to S3 with gzip headers
+        # Sync only .geojson files and set Content-Encoding and Content-Type appropriately
+        run: |
+          set -euo pipefail
+          aws s3 sync data/ s3://${{ secrets.S3_BUCKET }}/data/ \
+            --exclude "*" --include "*.geojson" \
+            --acl public-read \
+            --cache-control "max-age=3600, public" \
+            --content-type "application/geo+json" \
+            --content-encoding "gzip" \
+            --delete
+
+      - name: Upload other static assets (JS/CSS/images) to S3
+        # Adjust source folder (docs/ or site_assets/) to your site build output location
+        run: |
+          set -euo pipefail
+          # If you use docs/ (GitHub Pages), change SOURCE_DIR to docs/
+          SOURCE_DIR="site_assets"
+          if [ -d "$SOURCE_DIR" ]; then
+            aws s3 sync "$SOURCE_DIR"/ s3://${{ secrets.S3_BUCKET }}/assets/ \
+              --acl public-read \
+              --cache-control "max-age=31536000, public" \
+              --delete
+          else
+            echo "No $SOURCE_DIR directory found; skipping assets sync."
+          fi
+
+      - name: (Optional) CloudFront invalidation
+        if: ${{ secrets.CLOUDFRONT_DISTRIBUTION_ID != '' }}
+        run: |
+          set -euo pipefail
+          DIST_ID="${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }}"
+          caller_ref="gh-action-invalidate-$(date +%s)"
+          aws cloudfront create-invalidation --distribution-id "$DIST_ID" \
+            --paths "/*" --query "Invalidation.Id" --output text
+          echo "Created CloudFront invalidation for distribution $DIST_ID"
+
+      - name: Print public URLs (for convenience)
+        run: |
+          echo "GeoJSON public URL example:"
+          echo "https://${{ secrets.S3_BUCKET }}.s3.amazonaws.com/data/CA_census_tracts.geojson"
+          echo "Assets base URL example:"
+          echo "https://${{ secrets.S3_BUCKET }}.s3.amazonaws.com/assets/"
