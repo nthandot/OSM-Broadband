@@ -16,7 +16,11 @@ jobs:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.AWS_REGION }}
-
+      - name: Debug bucket name length
+        run: echo "Bucket name length is ${#S3_BUCKET}"
+        env:
+          S3_BUCKET: ${{ secrets.S3_BUCKET }}
+    
       - name: Create bucket if needed
         run: |
           if ! aws s3api head-bucket --bucket "${{ secrets.S3_BUCKET }}" 2>/dev/null; then
