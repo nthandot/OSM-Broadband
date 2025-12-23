@@ -1,27 +1,29 @@
-name: Create Bucket and Upload GeoJSON
+name: Deploy Web Map to S3
 
 on:
   push:
-    branches: [ main ]
+    branches:
+      - main
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      # 1️⃣ Checkout repo
+      - name: Checkout repo
+        uses: actions/checkout@v4
 
-      - uses: aws-actions/configure-aws-credentials@v4
+      # 2️⃣ Configure AWS credentials
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.AWS_REGION }}
-      - name: Debug bucket name length
-        run: echo "Bucket name length is ${#S3_BUCKET}"
-        env:
-          S3_BUCKET: ${{ secrets.S3_BUCKET }}
-    
-      - name: Create bucket if needed
+
+      # 3️⃣ Create bucket if needed
+      - name: Create S3 bucket if needed
         run: |
           if ! aws s3api head-bucket --bucket "${{ secrets.S3_BUCKET }}" 2>/dev/null; then
             if [ "${{ secrets.AWS_REGION }}" = "us-east-1" ]; then
@@ -34,19 +36,7 @@ jobs:
             fi
           fi
 
-      - name: Verify bucket exists
-        run: aws s3 ls s3://${{ secrets.S3_BUCKET }}
-
-      - name: Gzip and upload GeoJSON
-        run: |
-          for file in data/*.geojson; do
-            gzip -c "$file" > "$file.gz"
-            aws s3 cp "$file.gz" "s3://${{ secrets.S3_BUCKET }}/$file" \
-              --content-type application/geo+json \
-              --content-encoding gzip
-            rm "$file.gz"
-          done
-      
+      # 4️⃣ Enable static website hosting
       - name: Enable static website hosting
         run: |
           aws s3api put-bucket-website \
@@ -56,12 +46,14 @@ jobs:
               "ErrorDocument": {"Key": "index.html"}
             }'
 
+      # 5️⃣ Disable block public access
       - name: Disable block public access
         run: |
           aws s3api put-public-access-block \
             --bucket "${{ secrets.S3_BUCKET }}" \
             --public-access-block-configuration BlockPublicAcls=false,IgnorePublicAcls=false,BlockPublicPolicy=false,RestrictPublicBuckets=false
 
+      # 6️⃣ Set public-read bucket policy
       - name: Make bucket public
         run: |
           aws s3api put-bucket-policy \
@@ -79,6 +71,22 @@ jobs:
               ]
             }'
 
-      - name: Upload files to S3
+      # 7️⃣ Upload all HTML, CSS, JS to root
+      - name: Upload web map files
         run: |
-          aws s3 sync . s3://${{ secrets.S3_BUCKET }} --delete --exclude ".git/*" --exclude ".github/*"
+          aws s3 sync . s3://${{ secrets.S3_BUCKET }} \
+            --delete \
+            --exclude ".git/*" \
+            --exclude ".github/*" \
+            --exclude "data/*.geojson"
+
+      # 8️⃣ Gzip and upload GeoJSON to /data/
+      - name: Gzip and upload GeoJSON
+        run: |
+          mkdir -p tmp
+          for file in data/*.geojson; do
+            gzip -c "$file" > "tmp/$(basename "$file").gz"
+            aws s3 cp "tmp/$(basename "$file").gz" "s3://${{ secrets.S3_BUCKET }}/data/$(basename "$file")" \
+              --content-type application/geo+json \
+              --content-encoding gzip
+          done
