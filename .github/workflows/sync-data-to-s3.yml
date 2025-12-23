@@ -46,6 +46,21 @@ jobs:
               --content-encoding gzip
             rm "$file.gz"
           done
+      
+      - name: Enable static website hosting
+        run: |
+          aws s3api put-bucket-website \
+            --bucket "${{ secrets.S3_BUCKET }}" \
+            --website-configuration '{
+              "IndexDocument": {"Suffix": "index.html"},
+              "ErrorDocument": {"Key": "index.html"}
+            }'
+
+      - name: Disable block public access
+        run: |
+          aws s3api put-public-access-block \
+            --bucket "${{ secrets.S3_BUCKET }}" \
+            --public-access-block-configuration BlockPublicAcls=false,IgnorePublicAcls=false,BlockPublicPolicy=false,RestrictPublicBuckets=false
 
       - name: Make bucket public
         run: |
