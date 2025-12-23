@@ -32,6 +32,9 @@ jobs:
           git branch --show-current
           git rev-parse --short HEAD
           ls -la
+      - name: Debug – list S3 buckets
+        run: aws s3 ls
+    
       - name: Gzip and upload GeoJSON files
         run: |
           for file in data/*.geojson; do
