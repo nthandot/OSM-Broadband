@@ -32,6 +32,15 @@ jobs:
           git branch --show-current
           git rev-parse --short HEAD
           ls -la
+      - name: Gzip and upload GeoJSON files
+        run: |
+          for file in data/*.geojson; do
+          gzip -c "$file" > "$file.gz"
+          aws s3 cp "$file.gz" "s3://${{ secrets.S3_BUCKET }}/$file" \
+            --content-type application/geo+json \
+            --content-encoding gzip
+          rm "$file.gz"
+          done
 
       - name: Gzip .geojson files in-place (create gzipped bytes but keep same filename)
         # This compresses each .geojson, replacing the file contents with gzip'd bytes
