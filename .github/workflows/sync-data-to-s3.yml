@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1️⃣ Checkout repo
+      # 1️⃣ Checkout repository
       - name: Checkout repo
         uses: actions/checkout@v4
 
@@ -22,7 +22,7 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.AWS_REGION }}
 
-      # 3️⃣ Create bucket if needed
+      # 3️⃣ Create S3 bucket if it doesn't exist
       - name: Create S3 bucket if needed
         run: |
           if ! aws s3api head-bucket --bucket "${{ secrets.S3_BUCKET }}" 2>/dev/null; then
@@ -46,7 +46,7 @@ jobs:
               "ErrorDocument": {"Key": "index.html"}
             }'
 
-      # 5️⃣ Disable block public access
+      # 5️⃣ Disable S3 block public access
       - name: Disable block public access
         run: |
           aws s3api put-public-access-block \
@@ -80,13 +80,15 @@ jobs:
             --exclude ".github/*" \
             --exclude "data/*.geojson"
 
-      # 8️⃣ Gzip and upload GeoJSON to /data/
-      - name: Gzip and upload GeoJSON
+      # 8️⃣ Upload GeoJSON files uncompressed
+      - name: Upload GeoJSON files
         run: |
           mkdir -p tmp
           for file in data/*.geojson; do
-            gzip -c "$file" > "tmp/$(basename "$file").gz"
-            aws s3 cp "tmp/$(basename "$file").gz" "s3://${{ secrets.S3_BUCKET }}/data/$(basename "$file")" \
-              --content-type application/geo+json \
-              --content-encoding gzip
+            aws s3 cp "$file" "s3://${{ secrets.S3_BUCKET }}/data/$(basename "$file")" \
+              --content-type application/geo+json
           done
+
+      # 9️⃣ Print website URL
+      - name: Print website URL
+        run: echo "Your web map is available at: http://${{ secrets.S3_BUCKET }}.s3-website-${{ secrets.AWS_REGION }}.amazonaws.com"
