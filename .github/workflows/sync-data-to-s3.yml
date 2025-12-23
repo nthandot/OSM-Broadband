@@ -46,3 +46,24 @@ jobs:
               --content-encoding gzip
             rm "$file.gz"
           done
+
+      - name: Make bucket public
+        run: |
+          aws s3api put-bucket-policy \
+            --bucket "${{ secrets.S3_BUCKET }}" \
+            --policy '{
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Sid": "PublicReadGetObject",
+                  "Effect": "Allow",
+                  "Principal": "*",
+                  "Action": "s3:GetObject",
+                  "Resource": "arn:aws:s3:::${{ secrets.S3_BUCKET }}/*"
+                }
+              ]
+            }'
+
+      - name: Upload files to S3
+        run: |
+          aws s3 sync . s3://${{ secrets.S3_BUCKET }} --delete --exclude ".git/*" --exclude ".github/*"
