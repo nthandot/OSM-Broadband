@@ -71,15 +71,6 @@ jobs:
             echo "No $SOURCE_DIR directory found; skipping assets sync."
           fi
 
-      - name: (Optional) CloudFront invalidation
-        if: ${{ secrets.CLOUDFRONT_DISTRIBUTION_ID != '' }}
-        run: |
-          set -euo pipefail
-          DIST_ID="${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }}"
-          caller_ref="gh-action-invalidate-$(date +%s)"
-          aws cloudfront create-invalidation --distribution-id "$DIST_ID" \
-            --paths "/*" --query "Invalidation.Id" --output text
-          echo "Created CloudFront invalidation for distribution $DIST_ID"
 
       - name: Print public URLs (for convenience)
         run: |
