@@ -1,0 +1,139 @@
+html, body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+#map {
+  height: 100%;
+  width: 100%;
+}
+
+.map-title {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  background-color: #4a4a4a;
+  color: white;
+  padding: 10px 20px;
+  font-family: Arial, sans-serif;
+  font-size: 18px;
+  font-weight: bold;
+  text-align: left;
+}
+
+/* Move Leaflet controls down below title */
+.leaflet-top {
+  top: 40px !important;
+}
+
+/* Ensure Leaflet controls don't overlap title */
+.leaflet-top .leaflet-control {
+  margin-top: 10px;
+}
+
+/* Customize Leaflet Sidebar */
+.leaflet-sidebar {
+  font-family: Arial, sans-serif;
+}
+
+.leaflet-sidebar-header {
+  background-color: #4a4a4a;
+  color: white;
+  padding: 12px 24px;
+}
+
+.leaflet-sidebar-tabs {
+  background-color: #fff;
+}
+
+.leaflet-sidebar-tabs > ul > li {
+  color: #666;
+}
+
+.leaflet-sidebar-tabs > ul > li:hover,
+.leaflet-sidebar-tabs > ul > li.active {
+  color: #1976d2;
+  background-color: #e3f2fd;
+}
+
+.leaflet-sidebar-content {
+  background-color: #fff;
+}
+
+.sidebar-content {
+  padding: 15px;
+}
+
+/* Layer Controls */
+.sidebar-select {
+  width: 100%;
+  padding: 8px;
+  margin-bottom: 10px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.sidebar-button {
+  width: 100%;
+  padding: 8px;
+  margin-bottom: 8px;
+  background: #1976d2;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.sidebar-button:hover {
+  background: #1565c0;
+}
+
+/* Legend Styles */
+.legend-item {
+  display: flex;
+  align-items: center;
+  margin-bottom: 8px;
+  font-weight: bold;
+}
+
+.legend-color {
+  width: 20px;
+  height: 20px;
+  margin-right: 8px;
+  border-radius: 3px;
+}
+
+/* Legend text formatting: split key and description on separate lines */
+.legend-text {
+  display: flex;
+  flex-direction: column;
+}
+.legend-key {
+  font-weight: 700;
+  line-height: 1;
+}
+.legend-desc {
+  font-size: 12px;
+  color: #333;
+  line-height: 1.1;
+}
+
+.legend-section-title {
+  font-weight: 700;
+  margin-top: 8px;
+}
+.legend-section-desc {
+  font-size: 12px;
+  color: #333;
+  margin-top: 4px;
+  margin-bottom: 6px;
+}
+
+/* Material Icons */
+.material-icons {
+  font-size: 24px;
+}
