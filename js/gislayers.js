@@ -35,6 +35,12 @@ fetch('./data/CA_census_tracts.geojson')
         color: "#8d8c8cff",
         weight: 1,
         fillOpacity: 0
+      },
+      onEachFeature: (feature, layer) => {
+        layer.on('click', () => {
+          displayCensusTractChart(feature.properties);
+          sidebar.open('legend');
+        });
       }
     });
     censustractLayer.addTo(map);
@@ -182,24 +188,112 @@ for (const [layerName, path] of Object.entries(geojsonFiles)) {
     });
 }
 
-// Track active layers
-const activeLayers = new Set();
+// Track active layer
+let currentActiveLayer = null;
 
-// Add Layer
-document.getElementById("addLayerBtn").addEventListener("click", () => {
-  const selected = dropdown.value;
-  if (selected && overlayLayers[selected] && !activeLayers.has(selected)) {
+// Change Layer on Dropdown Selection
+document.getElementById("layerDropdown").addEventListener("change", (e) => {
+  const selected = e.target.value;
+  
+  // Remove currently active layer if any
+  if (currentActiveLayer && overlayLayers[currentActiveLayer]) {
+    map.removeLayer(overlayLayers[currentActiveLayer]);
+  }
+  
+  // Add new layer if selected
+  if (selected && overlayLayers[selected]) {
     map.addLayer(overlayLayers[selected]);
     map.fitBounds(overlayLayers[selected].getBounds());
-    activeLayers.add(selected);
+    currentActiveLayer = selected;
+  } else {
+    currentActiveLayer = null;
   }
 });
 
-// Remove Layer
-document.getElementById("removeLayerBtn").addEventListener("click", () => {
-  const selected = dropdown.value;
-  if (selected && overlayLayers[selected] && activeLayers.has(selected)) {
-    map.removeLayer(overlayLayers[selected]);
-    activeLayers.delete(selected);
+// Store chart instance
+let currentChart = null;
+
+// Function to display census tract properties as a chart
+function displayCensusTractChart(properties) {
+  const chartContainer = document.getElementById('chartContainer');
+  
+  if (!properties || Object.keys(properties).length === 0) {
+    chartContainer.innerHTML = '<p>No data available for this tract</p>';
+    return;
   }
-});
+  
+  // Create title
+  const tractInfo = document.createElement('div');
+  tractInfo.style.marginBottom = '20px';
+  
+  let title = 'Census Tract Details';
+  if (properties['GEOID']) {
+    title = `Census Tract: ${properties['GEOID']}`;
+  } else if (properties['name']) {
+    title = `${properties['name']}`;
+  }
+  
+  tractInfo.innerHTML = `<h3>${title}</h3>`;
+  
+  // Prepare data for chart - filter out complex properties
+  const chartData = {};
+  for (const [key, value] of Object.entries(properties)) {
+    // Skip GEOID and geometry-related properties
+    if (!['GEOID', 'geometry', 'geometries'].includes(key) && typeof value !== 'object') {
+      // Format the key for display (replace underscores with spaces, capitalize)
+      const displayKey = key.replace(/_/g, ' ').replace(/([A-Z])/g, ' $1').trim();
+      chartData[displayKey] = parseFloat(value) || 0;
+    }
+  }
+  
+  // Clear previous content and chart
+  chartContainer.innerHTML = '';
+  chartContainer.appendChild(tractInfo);
+  
+  if (Object.keys(chartData).length === 0) {
+    chartContainer.innerHTML += '<p>No numeric data available for this tract</p>';
+    return;
+  }
+  
+  // Create canvas for chart
+  const canvasContainer = document.createElement('div');
+  canvasContainer.innerHTML = '<canvas id="tractChart"></canvas>';
+  chartContainer.appendChild(canvasContainer);
+  
+  // Destroy previous chart if it exists
+  if (currentChart) {
+    currentChart.destroy();
+  }
+  
+  // Get canvas context
+  const ctx = document.getElementById('tractChart').getContext('2d');
+  
+  // Create bar chart
+  currentChart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: Object.keys(chartData),
+      datasets: [{
+        label: 'Value',
+        data: Object.values(chartData),
+        backgroundColor: 'rgba(54, 162, 235, 0.5)',
+        borderColor: 'rgba(54, 162, 235, 1)',
+        borderWidth: 1
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: true,
+      scales: {
+        y: {
+          beginAtZero: true
+        }
+      },
+      plugins: {
+        legend: {
+          display: false
+        }
+      }
+    }
+  });
+}
