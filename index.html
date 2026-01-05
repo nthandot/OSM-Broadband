@@ -25,10 +25,23 @@
   ></script>
   <!-- Leaflet Sidebar JS -->
   <script src="https://cdn.jsdelivr.net/npm/leaflet-sidebar-v2/js/leaflet-sidebar.min.js"></script>
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
   
 </head>
 <body>
-  <div class="map-title">Broadband Access and Low Opportunity Areas</div>
+  <div class="map-title">
+    <span class="map-title-left">Broadband Access and Low Opportunity Areas</span>
+    <span class="map-title-right">
+      <a href="#" class="map-title-link">Full Project Description</a>
+      <button id="aboutToggle" class="map-title-link map-title-about" type="button">About ▾</button>
+    </span>
+  </div>
+  <div id="aboutDialog" class="about-dialog" aria-hidden="true">
+    <div class="about-dialog-content">
+      <p>Opportunity Mapping: Broadband Access explores broadband availability and equity across California, highlighting areas with low opportunity indicators.</p>
+    </div>
+  </div>
   <div id="map"></div>
   
   <!-- Leaflet Sidebar -->
@@ -46,24 +59,19 @@
     <div class="leaflet-sidebar-content">
       <div class="leaflet-sidebar-pane" id="layers">
         <h2 class="leaflet-sidebar-header">
-          Introduction
+          Scenarios
           <span class="leaflet-sidebar-close"><i class="material-icons">close</i></span>
         </h2>
         <div class="sidebar-content">
           <select id="layerDropdown" class="sidebar-select">
-            <option value="">-- Select a Layer --</option>
+            <option value="" disabled selected hidden>Select a scenario</option>
           </select>
-          <button id="addLayerBtn" class="sidebar-button">Add Layer</button>
-          <button id="removeLayerBtn" class="sidebar-button">Remove Layer</button>
-        </div>
-      </div>
 
-      <div class="leaflet-sidebar-pane" id="legend">
-        <h2 class="leaflet-sidebar-header">
-          Legend
-          <span class="leaflet-sidebar-close"><i class="material-icons">close</i></span>
-        </h2>
-        <div class="sidebar-content">
+          <div class="filter-buttons">
+            <button id="bayAreaBtn" class="region-filter-btn">Bay Area Only</button>
+            <button id="californiaBtn" class="region-filter-btn active">California</button>
+          </div>
+
           <div class="legend-item">
             <span class="legend-color" style="background: #e41a1c;"></span>
             <span>Broadband Under 10 Mbps + Low Opportunity</span><br>
@@ -101,13 +109,25 @@
         </div>
       </div>
 
+      <div class="leaflet-sidebar-pane" id="legend">
+        <h2 class="leaflet-sidebar-header">
+          Census Tract Details
+          <span class="leaflet-sidebar-close"><i class="material-icons">close</i></span>
+        </h2>
+        <div class="sidebar-content" id="chartContainer">
+          <p>Click on a census tract to view its details</p>
+        </div>
+      </div>
+
       <div class="leaflet-sidebar-pane" id="info">
         <h2 class="leaflet-sidebar-header">
           Information
           <span class="leaflet-sidebar-close"><i class="material-icons">close</i></span>
         </h2>
         <div class="sidebar-content">
-          <p>This map shows the relationship between broadband access and areas of opportunity in California.</p>
+          <p>For questions or comments, please email:
+            
+            nthando.thandiwe@example.com.</p>
         </div>
       </div>
     </div>
@@ -115,5 +135,24 @@
 
   <!-- Link external JS -->
   <script src="./js/gislayers.js"></script>
+  <script>
+    const aboutToggle = document.getElementById('aboutToggle');
+    const aboutDialog = document.getElementById('aboutDialog');
+
+    aboutToggle?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const isOpen = aboutDialog.classList.toggle('open');
+      aboutDialog.setAttribute('aria-hidden', String(!isOpen));
+      aboutToggle.textContent = isOpen ? 'About ▴' : 'About ▾';
+    });
+
+    document.addEventListener('click', (e) => {
+      if (!aboutDialog.contains(e.target) && e.target !== aboutToggle) {
+        aboutDialog.classList.remove('open');
+        aboutDialog.setAttribute('aria-hidden', 'true');
+        if (aboutToggle) aboutToggle.textContent = 'About ▾';
+      }
+    });
+  </script>
 </body>
 </html>
