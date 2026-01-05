@@ -21,12 +21,73 @@ html, body {
   font-family: Arial, sans-serif;
   font-size: 18px;
   font-weight: bold;
-  text-align: left;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
 }
 
+.map-title-left {
+  flex: 1 1 auto;
+}
+
+.map-title-right {
+  display: inline-flex;
+  gap: 16px;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.map-title-link {
+  color: white;
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 600;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+}
+
+.map-title-link:hover {
+  text-decoration: underline;
+}
+
+.map-title-about {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: white;
+}
+
+.about-dialog {
+  position: fixed;
+  top: 44px;
+  right: 20px;
+  z-index: 9999;
+  background: rgba(255, 255, 255, 0.75);
+  color: #222;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  padding: 12px 14px;
+  width: min(320px, 90vw);
+  box-shadow: 0 6px 16px rgba(0,0,0,0.15);
+  display: none;
+}
+
+.about-dialog.open {
+  display: block;
+}
+
+.about-dialog-content {
+  font-size: 14px;
+  z-index: 2000;
+  font-family: Arial, sans-serif;
+  line-height: 1.5;
+}
 /* Move Leaflet controls down below title */
 .leaflet-top {
-  top: 40px !important;
+  top: 50px !important;
 }
 
 /* Ensure Leaflet controls don't overlap title */
@@ -37,6 +98,22 @@ html, body {
 /* Customize Leaflet Sidebar */
 .leaflet-sidebar {
   font-family: Arial, sans-serif;
+  /* sit below the title */
+  top: 50px !important;
+  bottom: 10px !important;
+  /* ensure it never exceeds viewport and becomes scrollable */
+  max-height: calc(100% - 60px) !important;
+  box-sizing: border-box;
+  overflow: auto;
+  padding-bottom: 10px;
+}
+
+
+
+/* Move the sidebar down so it doesn't overlap the map title */
+.leaflet-sidebar {
+  top: 50px !important;
+  height: calc(100% - 50px) !important;
 }
 
 .leaflet-sidebar-header {
@@ -68,14 +145,92 @@ html, body {
 }
 
 /* Layer Controls */
+/* Layer Controls – closed state (button look) */
 .sidebar-select {
   width: 100%;
-  padding: 8px;
+  padding: 10px 30px 10px 8px;
   margin-bottom: 10px;
-  border: 1px solid #ddd;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.4;
+
+  background-color: #1976d2;   /* blue when closed */
+  background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 12 12"><path fill="white" d="M6 9L1 4h10z"/></svg>');
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  background-size: 12px;
+  color: white;
+  border: 1px solid #1976d2;
   border-radius: 4px;
+  cursor: pointer;
+
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+  height: auto;
+  min-height: 40px;
 }
 
+/* Hover / focus on the closed select */
+.sidebar-select:hover,
+.sidebar-select:focus {
+  background-color: #1565c0;
+  border-color: #1565c0;
+  outline: none;
+}
+
+/* Dropdown list items (opened menu) */
+.sidebar-select option {
+  background-color: #ffffff;  /* white dropdown list */
+  color: #000000;
+  font-size: 13px;
+}
+
+/* Filter buttons container */
+.filter-buttons {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+/* Region filter buttons */
+.region-filter-btn {
+  flex: 1;
+  padding: 10px 12px;
+  background: #e0e0e0;
+  color: #333;
+  border: 1px solid #999;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  transition: all 0.2s;
+}
+
+.region-filter-btn:hover {
+  background: #d0d0d0;
+}
+
+.region-filter-btn.active {
+  background: #1976d2;
+  color: white;
+  border-color: #1565c0;
+}
+.region-filter-btn.disabled {
+  background: #c0c0c0;
+  color: #666;
+  border-color: #999;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.region-filter-btn.disabled:hover {
+  background: #c0c0c0;
+}
 .sidebar-button {
   width: 100%;
   padding: 8px;
@@ -136,4 +291,13 @@ html, body {
 /* Material Icons */
 .material-icons {
   font-size: 24px;
+}
+
+/* Big dropdown button */
+.sidebar-big-button {
+  padding: 16px 14px !important;
+  font-size: 18px !important;
+  font-weight: 700 !important;
+  text-align: left !important;
+  background: #1976d2 !important;
 }
