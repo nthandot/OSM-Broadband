@@ -311,7 +311,7 @@ function displayCensusTractChart(properties) {
   // ---- Title ----
   const tractInfo = document.createElement('div');
   tractInfo.style.marginBottom = '16px';
-  const countyName = properties.county_name || properties.NAME_1 || 'Unknown';
+  const countyName = properties.county_name || properties.county || 'Unknown';
   tractInfo.innerHTML = `<h3>Census Tract: ${properties.GEOID ?? 'Unknown'}</h3><p style="margin: 4px 0; font-size: 14px; font-weight: bold;">County: ${countyName}</p>`;
   
 
