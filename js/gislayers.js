@@ -53,7 +53,7 @@ fetch('./data/CA_census_tracts.geojson')
       },
       onEachFeature: (feature, layer) => {
         // Store county info on layer
-        const countyName = feature.properties.county_name || feature.properties.COUNTYFP || '';
+        const countyName = feature.properties.county || feature.properties.county_name || '';
         layer.countyName = countyName;
         console.log('Census tract loaded:', { geoid: feature.properties.GEOID, countyName, inBayArea: bayAreaCounties.includes(countyName) });
         layer.on('click', (e) => {
@@ -131,9 +131,9 @@ fetch('./data/CA_census_tracts.geojson')
 // Layers setup
 const overlayLayers = {};
 const geojsonFiles = {
-  "Broadband Under 10 Mbps + Low Opportunity": "./data/BroadbandUnder10and_low_opportunity.geojson",
-  "Broadband 10 Mbps to 25 Mbps + Low Opportunity": "./data/Broadband10to25_low_opportunity.geojson",
-  "Broadband Low-Fiber Deployment + Low Opportunity": "./data/BroadbandLowFiberDeployand_low_opportunity.geojson",
+  "Broadband Under 10 Mbps + Low Opportunity": "./data/CA_census_tracts.geojson",
+  "Broadband 10 Mbps to 25 Mbps + Low Opportunity": "./data/CA_census_tracts.geojson",
+  "Broadband Low-Fiber Deployment + Low Opportunity": "./data/CA_census_tracts.geojson",
   "Broadband Fiber Spatial Clustering + Low Opportunity": "./data/BroadbandLowFiber_ClusterAnalysis.geojson"
 };
 
@@ -167,6 +167,25 @@ for (const [layerName, path] of Object.entries(geojsonFiles)) {
       return res.json();
     })
     .then(data => {
+      // Filter features based on scenario
+      let filteredData = { ...data, features: data.features };
+      
+      if (layerName === "Broadband Under 10 Mbps + Low Opportunity") {
+        filteredData.features = data.features.filter(feature => 
+          feature.properties.pctHHS_under10mbps !== undefined && feature.properties.pctHHS_under10mbps !== null
+        );
+      } else if (layerName === "Broadband 10 Mbps to 25 Mbps + Low Opportunity") {
+        filteredData.features = data.features.filter(feature => 
+          feature.properties.pctHHs_10to25mbps !== undefined && feature.properties.pctHHs_10to25mbps !== null
+        );
+      } else if (layerName === "Broadband Low-Fiber Deployment + Low Opportunity") {
+        filteredData.features = data.features.filter(feature => 
+          feature.properties.ResidentialPercentwFiber !== undefined && 
+          feature.properties.ResidentialPercentwFiber !== null &&
+          feature.properties.ResidentialPercentwFiber < 0.294872
+        );
+      }
+
       const layerOptions = {
         onEachFeature: (feature, layer) => {
           const popup = Object.entries(feature.properties)
@@ -192,7 +211,7 @@ for (const [layerName, path] of Object.entries(geojsonFiles)) {
         };
       }
 
-      const layer = L.geoJSON(data, layerOptions);
+      const layer = L.geoJSON(filteredData, layerOptions);
       overlayLayers[layerName] = layer;
 
       // Update dropdown text to remove "loading..."
@@ -220,9 +239,9 @@ function applyOverlayRegionFilter(region) {
 
   activeLayer.eachLayer(featureLayer => {
     const props = featureLayer.feature?.properties || {};
-    const countyName = props.county_name || props.NAME || props.Name || props.NAME_1 || '';
+    const countyName = props.county || props.county_name || props.NAME || props.Name || props.NAME_1 || '';
     // Extract county code: handle concatenated codes like '6077003406' (state+county+tract)
-    const countyCodeFull = (props.COUNTYFP || props.FIPS || props.CountyId || '').toString();
+    const countyCodeFull = (props.COUNTYFYP || props.COUNTYFP || props.FIPS || props.CountyId || '').toString();
     let countyCode;
     if (countyCodeFull.length > 5) {
       // Concatenated code: extract first 4 chars (state+county), then last 3 (county only)
