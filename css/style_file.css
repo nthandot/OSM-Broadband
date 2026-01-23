@@ -19,7 +19,7 @@ html, body {
   color: white;
   padding: 10px 20px;
   font-family: Arial, sans-serif;
-  font-size: 18px;
+  font-size: 24px;
   font-weight: bold;
   display: flex;
   align-items: center;
@@ -41,7 +41,7 @@ html, body {
 .map-title-link {
   color: white;
   text-decoration: none;
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 600;
   background: none;
   border: none;
@@ -69,8 +69,10 @@ html, body {
   color: #222;
   border: 1px solid #ccc;
   border-radius: 6px;
-  padding: 12px 14px;
-  width: min(320px, 90vw);
+  padding: 20px;
+  width: min(500px, 90vw);
+  max-height: 80vh;
+  overflow-y: auto;
   box-shadow: 0 6px 16px rgba(0,0,0,0.15);
   display: none;
 }
@@ -150,7 +152,7 @@ html, body {
   width: 100%;
   padding: 10px 30px 10px 8px;
   margin-bottom: 10px;
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 500;
   line-height: 1.4;
 
@@ -187,7 +189,7 @@ html, body {
 .sidebar-select option {
   background-color: #ffffff;  /* white dropdown list */
   color: #000000;
-  font-size: 13px;
+  font-size: 16px;
 }
 
 /* Filter buttons container */
@@ -272,7 +274,7 @@ html, body {
   line-height: 1;
 }
 .legend-desc {
-  font-size: 12px;
+  font-size: 16px;
   color: #333;
   line-height: 1.1;
 }
@@ -282,7 +284,7 @@ html, body {
   margin-top: 8px;
 }
 .legend-section-desc {
-  font-size: 12px;
+  font-size: 16px;
   color: #333;
   margin-top: 4px;
   margin-bottom: 6px;
@@ -290,14 +292,124 @@ html, body {
 
 /* Material Icons */
 .material-icons {
-  font-size: 24px;
+  font-size: 30px;
 }
 
 /* Big dropdown button */
 .sidebar-big-button {
   padding: 16px 14px !important;
-  font-size: 18px !important;
+  font-size: 30px !important;
   font-weight: 700 !important;
   text-align: left !important;
   background: #1976d2 !important;
+}
+/* Welcome Modal Styles */
+.modal {
+  display: flex;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+}
+
+.modal.hidden {
+  display: none;
+}
+
+.modal-content {
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  width: 90%;
+  max-width: 500px;
+  display: flex;
+  flex-direction: column;
+}
+
+.modal-header {
+  background-color: #4daf4a;
+  color: white;
+  padding: 20px;
+  border-radius: 8px 8px 0 0;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.modal-header h2 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.modal-close {
+  background: none;
+  border: none;
+  color: white;
+  font-size: 28px;
+  cursor: pointer;
+  padding: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.2s;
+}
+
+.modal-close:hover {
+  opacity: 0.8;
+}
+
+.modal-body {
+  padding: 20px;
+  flex: 1;
+  font-family: Arial, sans-serif;
+  font-size: 12px;
+  line-height: 1.6;
+  color: #333;
+}
+
+.modal-body p {
+  margin: 0 0 12px 0;
+}
+
+.modal-body p:last-child {
+  margin-bottom: 0;
+}
+
+.modal-footer {
+  padding: 20px;
+  display: flex;
+  justify-content: flex-end;
+  border-top: 1px solid #eee;
+  border-radius: 0 0 8px 8px;
+}
+
+.begin-button {
+  background-color: #4daf4a;
+  color: white;
+  border: none;
+  padding: 10px 24px;
+  font-size: 14px;
+  font-weight: 600;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.begin-button:hover {
+  background-color: #3d8a38;
+}
+
+.begin-button:active {
+  background-color: #2d6a28;
 }

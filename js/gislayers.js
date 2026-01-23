@@ -8,6 +8,26 @@ const sidebar = L.control.sidebar({
   position: 'right'
 }).addTo(map);
 
+// Open sidebar on page load
+sidebar.open('layers');
+
+// Welcome Modal Handler
+document.addEventListener('DOMContentLoaded', () => {
+  const modal = document.getElementById('welcomeModal');
+  const beginBtn = document.getElementById('beginBtn');
+  const closeBtn = document.getElementById('closeModalBtn');
+
+  // Close modal when Begin button is clicked
+  beginBtn.addEventListener('click', () => {
+    modal.classList.add('hidden');
+  });
+
+  // Close modal when X button is clicked
+  closeBtn.addEventListener('click', () => {
+    modal.classList.add('hidden');
+  });
+});
+
 // Grey basemap
 L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
   attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
@@ -20,7 +40,11 @@ map.createPane('censustractPane');
 map.getPane('censustractPane').style.zIndex = 650;
 
 map.createPane('countyPane');
-map.getPane('countyPane').style.zIndex = 700;
+map.getPane('countyPane').style.zIndex = 800;
+
+// Pane for scenario overlays so their strokes sit above base tracts/counties
+map.createPane('scenarioPane');
+map.getPane('scenarioPane').style.zIndex = 750;
 
 // Bay Area counties list
 const bayAreaCounties = [
@@ -30,6 +54,8 @@ const bayAreaCounties = [
 ];
 
 // Global reference for census tract layer (for filtering)
+const tractPropsByGEOID = {}; // cache of base tract attributes for lookup when clicking overlays
+const broadbandMetricsByGEOID = {}; // cache of broadband percentages across overlays
 let censustractLayerGroup = null;
 let currentRegionFilter = 'california'; // 'california' or 'bayarea'
 let bayAreaCountyLayer = null;
@@ -47,13 +73,17 @@ fetch('./data/CA_census_tracts.geojson')
     const censustractLayer = L.geoJSON(data, {
       pane: 'censustractPane',
       style: {
-        color: "#8d8c8cff",
-        weight: 1,
+        color: "lightgray",
+        weight: 0.5,
         fillOpacity: 0.01
       },
       onEachFeature: (feature, layer) => {
         // Store county info on layer
         const countyName = feature.properties.county || feature.properties.county_name || '';
+        const geoid = feature.properties.GEOID || feature.properties.geoid || feature.properties.GEOID10 || '';
+        if (geoid) {
+          tractPropsByGEOID[geoid.toString()] = feature.properties;
+        }
         layer.countyName = countyName;
         console.log('Census tract loaded:', { geoid: feature.properties.GEOID, countyName, inBayArea: bayAreaCounties.includes(countyName) });
         layer.on('click', (e) => {
@@ -100,8 +130,8 @@ fetch('./data/CA_census_tracts.geojson')
         pane: 'countyPane',
         interactive: false,
         style: {
-          color: "#070707ff",
-          weight: 2,
+          color: "#8d8c8cff",
+          weight: 1,
           fillOpacity: 0
         }
       });
@@ -115,8 +145,8 @@ fetch('./data/CA_census_tracts.geojson')
         pane: 'countyPane',
         interactive: false,
         style: {
-          color: "#2563eb",
-          weight: 3,
+          color: "#070707ff",
+          weight: 1.5,
           fillOpacity: 0
         }
       });
@@ -131,9 +161,9 @@ fetch('./data/CA_census_tracts.geojson')
 // Layers setup
 const overlayLayers = {};
 const geojsonFiles = {
-  "Broadband Under 10 Mbps + Low Opportunity": "./data/CA_census_tracts.geojson",
-  "Broadband 10 Mbps to 25 Mbps + Low Opportunity": "./data/CA_census_tracts.geojson",
-  "Broadband Low-Fiber Deployment + Low Opportunity": "./data/CA_census_tracts.geojson",
+  "Broadband Under 10 Mbps + Low Opportunity": "./data/BroadbandUnder10and_low_opportunity.geojson",
+  "Broadband 10 Mbps to 25 Mbps + Low Opportunity": "./data/Broadband10to25_low_opportunity.geojson",
+  "Broadband Low-Fiber Deployment + Low Opportunity": "./data/BroadbandLowFiberDeployand_low_opportunity.geojson",
   "Broadband Fiber Spatial Clustering + Low Opportunity": "./data/BroadbandLowFiber_ClusterAnalysis.geojson"
 };
 
@@ -148,6 +178,31 @@ const colorMap = {
   "Broadband Low-Fiber Deployment + Low Opportunity": "#4daf4a",
   "Broadband Fiber Spatial Clustering + Low Opportunity": "#984ea3"
 };
+
+// Cache broadband metrics per GEOID so the chart can show all three bars regardless of which overlay was clicked
+function cacheBroadbandMetrics(layerName, props) {
+  const geoid = props.GEOID || props.geoid || props.GEOID10 || props.census_tract || props.FIPS || '';
+  if (!geoid) return;
+  const key = geoid.toString();
+  const entry = broadbandMetricsByGEOID[key] || {};
+
+  const setMetric = (field, value) => {
+    if (value !== null && value !== undefined) {
+      const num = readPercent(value);
+      if (num !== null) entry[field] = num;
+    }
+  };
+
+  if (layerName === "Broadband Under 10 Mbps + Low Opportunity") {
+    setMetric('under10', props.pctHHS_under10mbps ?? props.PercentHH_under10 ?? props.pct_hhs_under10mbps ?? props.PctHHs_Under10);
+  } else if (layerName === "Broadband 10 Mbps to 25 Mbps + Low Opportunity") {
+    setMetric('tenTo25', props.pctHHs_10to25mbps ?? props.PercentHH10to25 ?? props.PercentHH_10to25);
+  } else if (layerName === "Broadband Low-Fiber Deployment + Low Opportunity" || layerName === "Broadband Fiber Spatial Clustering + Low Opportunity") {
+    setMetric('fiber', props.ResidentialPercentwFiber ?? props.Residential_Pct_Fiber ?? props.TotalPercentwFiber);
+  }
+
+  broadbandMetricsByGEOID[key] = entry;
+}
 
 const dropdown = document.getElementById("layerDropdown");
 
@@ -167,31 +222,16 @@ for (const [layerName, path] of Object.entries(geojsonFiles)) {
       return res.json();
     })
     .then(data => {
-      // Filter features based on scenario
-      let filteredData = { ...data, features: data.features };
-      
-      if (layerName === "Broadband Under 10 Mbps + Low Opportunity") {
-        filteredData.features = data.features.filter(feature => 
-          feature.properties.pctHHS_under10mbps !== undefined && feature.properties.pctHHS_under10mbps !== null
-        );
-      } else if (layerName === "Broadband 10 Mbps to 25 Mbps + Low Opportunity") {
-        filteredData.features = data.features.filter(feature => 
-          feature.properties.pctHHs_10to25mbps !== undefined && feature.properties.pctHHs_10to25mbps !== null
-        );
-      } else if (layerName === "Broadband Low-Fiber Deployment + Low Opportunity") {
-        filteredData.features = data.features.filter(feature => 
-          feature.properties.ResidentialPercentwFiber !== undefined && 
-          feature.properties.ResidentialPercentwFiber !== null &&
-          feature.properties.ResidentialPercentwFiber < 0.294872
-        );
-      }
-
       const layerOptions = {
+        pane: 'scenarioPane',
         onEachFeature: (feature, layer) => {
-          const popup = Object.entries(feature.properties)
-            .map(([k,v]) => `<strong>${k}</strong>: ${v}`)
-            .join("<br>");
-          layer.bindPopup(popup);
+          cacheBroadbandMetrics(layerName, feature.properties);
+          // On click, show the bar chart in the sidebar instead of a popup
+          layer.on('click', (e) => {
+            L.DomEvent.stopPropagation(e);
+            displayCensusTractChart(feature.properties);
+            sidebar.open('legend');
+          });
         }
       };
 
@@ -211,7 +251,7 @@ for (const [layerName, path] of Object.entries(geojsonFiles)) {
         };
       }
 
-      const layer = L.geoJSON(filteredData, layerOptions);
+      const layer = L.geoJSON(data, layerOptions);
       overlayLayers[layerName] = layer;
 
       // Update dropdown text to remove "loading..."
@@ -296,6 +336,10 @@ document.getElementById("layerDropdown").addEventListener("change", (e) => {
   if (selected && overlayLayers[selected]) {
     map.addLayer(overlayLayers[selected]);
     currentActiveLayer = selected;
+
+    // Keep county outlines above tracts/overlays
+    if (otherCountyLayer) otherCountyLayer.bringToFront();
+    if (bayAreaCountyLayer) bayAreaCountyLayer.bringToFront();
     
     // If statewide layer selected, auto-activate Bay Area filter and zoom
     if (!isBayAreaOnly) {
@@ -327,20 +371,55 @@ function displayCensusTractChart(properties) {
     return;
   }
 
+  // Merge in base tract attributes (from statewide layer) so all three metrics are available regardless of which overlay was clicked
+  const geoidKey = (properties.GEOID || properties.geoid || properties.GEOID10 || '').toString();
+  const baseProps = geoidKey && tractPropsByGEOID[geoidKey] ? tractPropsByGEOID[geoidKey] : null;
+  const mergedProps = baseProps ? { ...baseProps, ...properties } : properties;
+  const cachedMetrics = geoidKey && broadbandMetricsByGEOID[geoidKey] ? broadbandMetricsByGEOID[geoidKey] : {};
+
   // ---- Title ----
   const tractInfo = document.createElement('div');
   tractInfo.style.marginBottom = '16px';
-  const countyName = properties.county_name || properties.county || 'Unknown';
-  tractInfo.innerHTML = `<h3>Census Tract: ${properties.GEOID ?? 'Unknown'}</h3><p style="margin: 4px 0; font-size: 14px; font-weight: bold;">County: ${countyName}</p>`;
+  const countyName = mergedProps.county_name || mergedProps.county || 'Unknown';
+  tractInfo.innerHTML = `<h3>Census Tract: ${mergedProps.GEOID ?? mergedProps.geoid ?? 'Unknown'}</h3><p style="margin: 4px 0; font-size: 14px; font-weight: bold;">County: ${countyName}</p>`;
   
 
   chartContainer.innerHTML = '';
   chartContainer.appendChild(tractInfo);
 
-  // ---- Read values (ONLY from CA_census_tracts.geojson) ----
-  let under10  = readPercent(properties.pctHHS_under10mbps);
-  let tenTo25  = readPercent(properties.pctHHs_10to25mbps);
-  let fiber    = readPercent(properties.ResidentialPercentwFiber);
+  // ---- Read values: always show the three broadband percentages when present ----
+  const activeLayerName = currentActiveLayer;
+  const readPct = (keyList) => {
+    for (const k of keyList) {
+      const v = mergedProps[k];
+      const num = readPercent(v);
+      if (num !== null) return num;
+    }
+    return null;
+  };
+
+  // Prioritize fields relevant to the selected scenario, then fall back to any known aliases
+  const uniq = (arr) => Array.from(new Set(arr));
+  const under10Keys = uniq([
+    ...(activeLayerName === "Broadband Under 10 Mbps + Low Opportunity" ? ["pctHHS_under10mbps", "PercentHH_under10", "pct_hhs_under10mbps"] : []),
+    "pctHHS_under10mbps", "PercentHH_under10", "pct_hhs_under10mbps", "PctHHs_Under10"
+  ]);
+  const tenTo25Keys = uniq([
+    ...(activeLayerName === "Broadband 10 Mbps to 25 Mbps + Low Opportunity" ? ["pctHHs_10to25mbps", "PercentHH10to25", "PercentHH_10to25"] : []),
+    "pctHHs_10to25mbps", "PercentHH10to25", "PercentHH_10to25"
+  ]);
+  const fiberKeys = uniq([
+    ...(activeLayerName === "Broadband Low-Fiber Deployment + Low Opportunity" ? ["ResidentialPercentwFiber", "Residential_Pct_Fiber", "TotalPercentwFiber"] : []),
+    "ResidentialPercentwFiber", "Residential_Pct_Fiber", "TotalPercentwFiber"
+  ]);
+
+  let under10 = readPct(under10Keys);
+  let tenTo25 = readPct(tenTo25Keys);
+  let fiber   = readPct(fiberKeys);
+
+  if (under10 === null && cachedMetrics.under10 !== undefined) under10 = cachedMetrics.under10;
+  if (tenTo25 === null && cachedMetrics.tenTo25 !== undefined) tenTo25 = cachedMetrics.tenTo25;
+  if (fiber === null && cachedMetrics.fiber !== undefined) fiber = cachedMetrics.fiber;
 
   // OPTIONAL: if values are decimals (0–1), convert to percent
   const isDecimal = v => v !== null && v <= 1;
@@ -349,6 +428,12 @@ function displayCensusTractChart(properties) {
     tenTo25 = tenTo25 !== null ? tenTo25 * 100 : null;
     fiber   = fiber   !== null ? fiber   * 100 : null;
   }
+
+  // Clean non-finite values to avoid NaN in chart
+  const clean = v => (Number.isFinite(v) ? v : null);
+  under10 = clean(under10);
+  tenTo25 = clean(tenTo25);
+  fiber   = clean(fiber);
 
   // ---- If ALL missing ----
   if ([under10, tenTo25, fiber].every(v => v === null)) {
@@ -374,7 +459,7 @@ function displayCensusTractChart(properties) {
         if (!meta || !meta.data) return;
         meta.data.forEach((element, index) => {
           const value = dataset.data[index];
-          if (value === null || value === undefined) return;
+          if (value === null || value === undefined || !Number.isFinite(value)) return;
           const label = (Number.isFinite(value) ? value.toFixed(1) : value) + '%';
           const position = element.getCenterPoint ? element.getCenterPoint() : { x: element.x, y: element.y };
           ctx.save();
@@ -428,10 +513,14 @@ function displayCensusTractChart(properties) {
         }
       },
       plugins: {
+        title: {
+          display: true,
+          text: 'Percent of Households per Tract by Download Speeds and Fiber Access'
+        },
         tooltip: {
           callbacks: {
             label: ctx =>
-              ctx.raw === null
+              ctx.raw === null || !Number.isFinite(ctx.raw)
                 ? `${ctx.dataset.label}: No data`
                 : `${ctx.dataset.label}: ${ctx.raw.toFixed(1)}%`
           }
@@ -440,7 +529,7 @@ function displayCensusTractChart(properties) {
     }
   });
 // ---- Category label below chart ----
-const categoryValue = properties.Category ?? 'Unknown';
+const categoryValue = mergedProps.Category ?? 'Unknown';
 
 const categoryDiv = document.createElement('div');
 categoryDiv.style.marginTop = '12px';
@@ -450,13 +539,29 @@ categoryDiv.textContent = `Category: ${categoryValue}`;
 chartContainer.appendChild(categoryDiv);
 
 // ---- Total Households label ----
-const totalHouseholds = properties.TotalHouseholdsinTracts ?? 'Unknown';
+const totalHouseholds = mergedProps.TotalHouseholdsinTracts ?? mergedProps.TotalHouseholds ?? mergedProps.value ?? 'Unknown';
 const householdsDiv = document.createElement('div');
 householdsDiv.style.marginTop = '8px';
 householdsDiv.style.fontWeight = 'bold';
 householdsDiv.textContent = `Total Households: ${totalHouseholds}`;
 
 chartContainer.appendChild(householdsDiv);
+
+// ---- Footnote below chart ----
+const noteDiv = document.createElement('div');
+noteDiv.style.marginTop = '10px';
+noteDiv.style.fontSize = '12px';
+noteDiv.style.lineHeight = '1.4';
+noteDiv.textContent = 'Percents are calculated by the number of households with access to the stated speeds. They do not total 100% because the remaining households could be served by other broadband connections such as wireless or satellite not modeled here.';
+chartContainer.appendChild(noteDiv);
+
+// ---- Additional explanation ----
+const noteDiv2 = document.createElement('div');
+noteDiv2.style.marginTop = '10px';
+noteDiv2.style.fontSize = '12px';
+noteDiv2.style.lineHeight = '1.4';
+noteDiv2.textContent = 'Zero percent of households in a tract means that there are no households in the tract that are serviced by copper (10), cable (40), or Fiber (50), with a max download speed of less than 10 Mbps. This means that households could have access to other broadband services, such as wireless or satellite, which may or may not fall under the 10 Mbps threshold. Additionally, some census blocks are serviced by one of the three broadband codes noted above and have download speeds under 10 Mbps, but because the census block contains no households, when summed to the tract level, the analysis shows that 0% of households fall under the 10 Mbps threshold. ';
+chartContainer.appendChild(noteDiv2);
 
 }
 
@@ -480,10 +585,15 @@ function filterCensusTractsByRegion(region) {
     // Zoom to Bay Area
     if (bayAreaCountyLayer) {
       map.fitBounds(bayAreaCountyLayer.getBounds());
+      bayAreaCountyLayer.bringToFront();
     }
   } else {
     if (otherCountyLayer && !map.hasLayer(otherCountyLayer)) {
       otherCountyLayer.addTo(map);
+    }
+    // Ensure Bay Area counties stay on top
+    if (bayAreaCountyLayer) {
+      bayAreaCountyLayer.bringToFront();
     }
     // Zoom back to California
     map.setView([37.5, -119.5], 6);

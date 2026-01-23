@@ -39,10 +39,32 @@
   </div>
   <div id="aboutDialog" class="about-dialog" aria-hidden="true">
     <div class="about-dialog-content">
-      <p>Opportunity Mapping: Broadband Access explores broadband availability and equity across California, highlighting areas with low opportunity indicators.</p>
+      <p>Opportunity Mapping: Broadband Access explores broadband availability of varying download speeds across California that intersect with low opportunity census tracts.</p>
+      <p>This project aims to identify and address disparities in broadband access to support equitable opportunities for all communities.</p>
+    
     </div>
   </div>
   <div id="map"></div>
+
+  <!-- Welcome Modal -->
+  <div id="welcomeModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Mapping Broadband Opportunity in California</h2>
+        <button id="closeModalBtn" class="modal-close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p><b>Mapping Broadband Opportunity in California.</b></p>
+        <p>Welcome to the Broadband Access Opportunity Mapping tool. This interactive map attempts to answer a critical question:</p>
+          <p><i>How can broadband investment and deployment efforts prioritize areas of opportunity in ways that promote bridging the digital divide?</i></p>
+          <p>Our organization undertook this mapping effort to provide data-driven insights and an evidence-based framework for understanding the neighborhood characteristics that matter when expanding broadband access. Drawing on existing research, we developed maps designed to inform policy discussions and community engagement around where and how broadband infrastructure can have the greatest impact.</p>
+          <p>It is important to note, however, that these maps address only one dimension of California’s broadband challenge—access and opportunity patterns. Other critical considerations, such as affordability, digital literacy, and computer access, require additional analysis and dedicated stakeholder engagement to ensure broadband investments are both equitable and effective.</p>
+      </div>
+      <div class="modal-footer">
+        <button id="beginBtn" class="begin-button">Begin</button>
+      </div>
+    </div>
+  </div>
   
   <!-- Leaflet Sidebar -->
   <div id="sidebar" class="leaflet-sidebar collapsed">
@@ -137,21 +159,13 @@
   <script src="./js/gislayers.js"></script>
   <script>
     const aboutToggle = document.getElementById('aboutToggle');
-    const aboutDialog = document.getElementById('aboutDialog');
+    const welcomeModal = document.getElementById('welcomeModal');
 
+    // Open the welcome modal when About is clicked
     aboutToggle?.addEventListener('click', (e) => {
+      e.preventDefault();
       e.stopPropagation();
-      const isOpen = aboutDialog.classList.toggle('open');
-      aboutDialog.setAttribute('aria-hidden', String(!isOpen));
-      aboutToggle.textContent = isOpen ? 'About ▴' : 'About ▾';
-    });
-
-    document.addEventListener('click', (e) => {
-      if (!aboutDialog.contains(e.target) && e.target !== aboutToggle) {
-        aboutDialog.classList.remove('open');
-        aboutDialog.setAttribute('aria-hidden', 'true');
-        if (aboutToggle) aboutToggle.textContent = 'About ▾';
-      }
+      welcomeModal?.classList.remove('hidden');
     });
   </script>
 </body>
