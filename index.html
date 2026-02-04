@@ -33,6 +33,9 @@
   <div class="map-title">
     <span class="map-title-left">Broadband Access and Low Opportunity Areas</span>
     <span class="map-title-right">
+      <a href="https://belonging.berkeley.edu/" target="_blank" rel="noopener noreferrer">
+        <img src="./data/OBI_logo.png" alt="OBI Logo" class="map-title-logo">
+      </a>
       <a href="#" class="map-title-link">Full Project Description</a>
       <button id="aboutToggle" class="map-title-link map-title-about" type="button">About ▾</button>
     </span>
@@ -56,11 +59,14 @@
       <div class="modal-body">
         <p><b>Mapping Broadband Opportunity in California.</b></p>
         <p>Welcome to the Broadband Access Opportunity Mapping tool. This interactive map attempts to answer a critical question:</p>
-          <p><i>How can broadband investment and deployment efforts prioritize areas of opportunity in ways that promote bridging the digital divide?</i></p>
+          <p><i>Which “low opportunity” geographic areas with limited access to high-speed broadband should be prioritized to bridge the digital divide?</i></p>
           <p>Our organization undertook this mapping effort to provide data-driven insights and an evidence-based framework for understanding the neighborhood characteristics that matter when expanding broadband access. Drawing on existing research, we developed maps designed to inform policy discussions and community engagement around where and how broadband infrastructure can have the greatest impact.</p>
           <p>It is important to note, however, that these maps address only one dimension of California’s broadband challenge—access and opportunity patterns. Other critical considerations, such as affordability, digital literacy, and computer access, require additional analysis and dedicated stakeholder engagement to ensure broadband investments are both equitable and effective.</p>
       </div>
       <div class="modal-footer">
+        <a href="https://belonging.berkeley.edu/" target="_blank" rel="noopener noreferrer">
+          <img src="./data/OBI_logo.png" alt="OBI Logo" class="modal-logo">
+        </a>
         <button id="beginBtn" class="begin-button">Begin</button>
       </div>
     </div>
@@ -71,9 +77,10 @@
     <!-- Navigation Tabs -->
     <div class="leaflet-sidebar-tabs">
       <ul role="tablist">
+        <li><a href="#info" role="tab"><i class="material-icons">info</i></a></li>
         <li><a href="#layers" role="tab"><i class="material-icons">layers</i></a></li>
         <li><a href="#legend" role="tab"><i class="material-icons">format_list_bulleted</i></a></li>
-        <li><a href="#info" role="tab"><i class="material-icons">info</i></a></li>
+        <li><a href="#metadata" role="tab"><i class="material-icons">data_usage</i></a></li>
       </ul>
     </div>
 
@@ -96,38 +103,34 @@
 
           <div class="legend-item">
             <span class="legend-color" style="background: #e41a1c;"></span>
-            <span>Broadband Under 10 Mbps + Low Opportunity</span><br>
+            <button class="legend-title-btn" data-layer="Broadband Under 10 Mbps + Low Opportunity">Broadband Under 10 Mbps + Low Opportunity</button><br>
           </div>
           <p class="legend-section-desc">
-            All census tracts include at least one census block with broadband speeds below 10 Mbps and are located in areas with low opportunity indicators.
+            Displays bay area census tracts where households have access to broadband speeds at a maximum of 10 Mbps and are categorized as low opportunity.
           </p>
 
           <div class="legend-item">
             <span class="legend-color" style="background: #377eb8;"></span>
-            <span>Broadband 10 Mbps to 25 Mbps + Low Opportunity</span>
+            <button class="legend-title-btn" data-layer="Broadband 10 Mbps to 25 Mbps + Low Opportunity">Broadband 10 Mbps to 25 Mbps + Low Opportunity</button>
             </div>
             <p class="legend-section-desc">
-              All census tracts include at least one census block with broadband speeds between 10 Mbps and 25 Mbps 
-              and are located in areas with low opportunity indicators.
+              Displays bay area census tracts where households have access to broadband speeds between 10 Mbps and 25 Mbps 
+              and are categorized as low opportunity.
             </p>
          
             <div class="legend-item">
             <span class="legend-color" style="background: #4daf4a;"></span>
-            <span>Broadband Low-Fiber Deployment + Low Opportunity</span>
+            <button class="legend-title-btn" data-layer="Broadband Low-Fiber Deployment + Low Opportunity">Broadband Low-Fiber Deployment + Low Opportunity</button>
             </div>
             <p class="legend-section-desc">
-              Low Fiber census tracts are defined by tracts that have less than 30% of households 
-              in the tract with access to fiber broadband and are located in areas with low opportunity indicators.
-              The 30% threshold is based on the the natural breaks using Jenks classification method.</p>
+              Displays census tracts where less than 30% of households have access to fiber broadband and are categorized as low opportunity.</p>
           
             <div class="legend-item">
             <span class="legend-color" style="background: #984ea3;"></span>
-            <span>Broadband Fiber Spatial Clustering + Low Opportunity</span>
+            <button class="legend-title-btn" data-layer="Broadband Fiber Spatial Clustering + Low Opportunity">Broadband Fiber Spatial Clustering + Low Opportunity</button>
             </div>
             <p class="legend-section-desc">
-              A spatial analysis examining the percent of households with fiber broadband access using Anselin Local Moran's I 
-              to determine tracts that are considered "Low / Low" signifying low broadband access tracts next to other low fiber broadband 
-              access tracts</p>
+              Displays census tracts with low household access to fiber broadband that are in close proximity to similarly low-access tracts and intersect with low-opportunity tracts.</p>
         </div>
       </div>
 
@@ -143,13 +146,60 @@
 
       <div class="leaflet-sidebar-pane" id="info">
         <h2 class="leaflet-sidebar-header">
-          Information
+          Information / Navigation
           <span class="leaflet-sidebar-close"><i class="material-icons">close</i></span>
         </h2>
         <div class="sidebar-content">
+          <p><strong>Navigating the web map</strong></p>
+          <ul class="icon-list">
+            <li class = "icon">
+              <i class="material-icons" aria-hidden="true">layers</i>
+              This tab allows you to filter which tracts are highlighted based on broadband access scenarios.</li>
+            <li class = "icon">
+              <i class="material-icons" aria-hidden="true">format_list_bulleted</i>
+              This tab shows detailed information about a census tract when clicking on the census tract.</li>
+            <li class = "icon">
+              <i class="material-icons" aria-hidden="true">info</i>
+              This tab provides information and definitions about the broadband analysis along with contact information for further inquiries.</li>
+          </ul>
+        </div>
+      <div class="sidebar-content">
+        <p><strong>Low Opportunity</strong></p>
+        <p>Low Opportunity tracts are areas of the state with characteristics that research has shown to be strongly associated with poorer economic, educational, and health outcomes for
+           low-income families—especially long-term outcomes for children—compared to other neighborhoods in the same region</p>
+      </div>
+      <div class="sidebar-content">
+        <p><strong>Broadband Speed Definition</strong></p>
+        <p>Broadband speeds are defined based on Federal Communications Commission (FCC) defined "maximum advertised download speed" offered to end users. This analysis brackets download speeds in two categories "Under 10 Mbps" and "10 Mbps to 25 Mbps". We also determined how many households have access to Fiber broadband.</p>
+      </div>
+        <div class="sidebar-content">
+        <p><strong>Broadband Access Codes</strong></p>
+        <p>Broadband access is categorized based on the following FCC broadband access codes:</p>
+        <ul class="icon-list">
+          <li class = "bullet"><strong>10:</strong> Copper wire-based connections.</li>
+          <li class = "bullet"><strong>40:</strong> Coaxial cable-based or hybrid fiber- coaxial connections.</li>
+          <li class = "bullet"><strong>50:</strong> Optical Fiber-based connections.</li>
+        </ul>
+        <p> <strong>Contact Information</strong></p>
           <p>For questions or comments, please email:
             
-            nthando.thandiwe@example.com.</p>
+          nthando.thandiwe@berkeley.edu.</p>
+      </div>
+      </div>
+
+      <div class="leaflet-sidebar-pane" id="metadata">
+        <h2 class="leaflet-sidebar-header">
+          Data Sources
+          <span class="leaflet-sidebar-close"><i class="material-icons">close</i></span>
+        </h2>
+        <div class="sidebar-content">
+          <p><strong>Data Sources</strong></p>
+          <p>This map utilizes data from the following sources:</p>
+          <ul class="data-sources-list">
+            <li><a href="https://broadbandmap.fcc.gov/data-download/nationwide-data?pubDataVer=dec2024" target="_blank" rel="noopener noreferrer">FCC data</a> - Federal Communications Commission broadband deployment and availability data</li>
+            <li><a href="https://belonging.berkeley.edu/california-adopts-obi-opportunity-map-9th-consecutive-year" target="_blank" rel="noopener noreferrer">TCAC data</a> - The California Tax Credit Allocation Committee (TCAC) Opportunity Map</li>
+            <li><a href="https://www.census.gov/programs-surveys/decennial-census/decade/2020/2020-census-results.html" target="_blank" rel="noopener noreferrer">Decennial Census Data</a> - 2020 decennial-census household data</li>
+          </ul>
         </div>
       </div>
     </div>

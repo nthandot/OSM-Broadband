@@ -60,6 +60,15 @@ html, body {
   color: white;
 }
 
+.map-title-logo {
+  height: 30px;
+  width: auto;
+  object-fit: contain;
+  background-color: white;
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+
 .about-dialog {
   position: fixed;
   top: 44px;
@@ -89,7 +98,7 @@ html, body {
 }
 /* Move Leaflet controls down below title */
 .leaflet-top {
-  top: 50px !important;
+  top: 70px !important;
 }
 
 /* Ensure Leaflet controls don't overlap title */
@@ -101,10 +110,11 @@ html, body {
 .leaflet-sidebar {
   font-family: Arial, sans-serif;
   /* sit below the title */
-  top: 50px !important;
+  top: 70px !important;
   bottom: 10px !important;
+  width: 550px !important;
   /* ensure it never exceeds viewport and becomes scrollable */
-  max-height: calc(100% - 60px) !important;
+  max-height: calc(100% - 80px) !important;
   box-sizing: border-box;
   overflow: auto;
   padding-bottom: 10px;
@@ -114,14 +124,16 @@ html, body {
 
 /* Move the sidebar down so it doesn't overlap the map title */
 .leaflet-sidebar {
-  top: 50px !important;
-  height: calc(100% - 50px) !important;
+  top: 70px !important;
+  height: calc(100% - 70px) !important;
 }
 
 .leaflet-sidebar-header {
   background-color: #4a4a4a;
   color: white;
   padding: 12px 24px;
+  font: 20px Arial, sans-serif;
+  font-weight: bold;
 }
 
 .leaflet-sidebar-tabs {
@@ -144,6 +156,7 @@ html, body {
 
 .sidebar-content {
   padding: 15px;
+  font-size: 16px;
 }
 
 /* Layer Controls */
@@ -255,6 +268,7 @@ html, body {
   align-items: center;
   margin-bottom: 8px;
   font-weight: bold;
+  font-size: 16px;
 }
 
 .legend-color {
@@ -283,11 +297,30 @@ html, body {
   font-weight: 700;
   margin-top: 8px;
 }
+
+.legend-title-btn {
+  background: none;
+  border: none;
+  color: #1976d2;
+  font-weight: bold;
+  font-size: 16px;
+  text-decoration: none;
+  cursor: pointer;
+  padding: 0;
+  text-align: left;
+  transition: color 0.2s;
+}
+
+.legend-title-btn:hover {
+  color: #1565c0;
+  text-decoration: underline;
+}
+
 .legend-section-desc {
   font-size: 16px;
   color: #333;
   margin-top: 4px;
-  margin-bottom: 6px;
+  margin-bottom: 20px;
 }
 
 /* Material Icons */
@@ -389,9 +422,16 @@ html, body {
 .modal-footer {
   padding: 20px;
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between;
+  align-items: center;
   border-top: 1px solid #eee;
   border-radius: 0 0 8px 8px;
+}
+
+.modal-logo {
+  height: 40px;
+  width: auto;
+  object-fit: contain;
 }
 
 .begin-button {
@@ -412,4 +452,53 @@ html, body {
 
 .begin-button:active {
   background-color: #2d6a28;
+}
+.icon-list {
+  padding-left: 1.2em;
+}
+
+/* Normal bullets */
+.icon-list li.bullet {
+  list-style: disc;
+  margin-bottom: 8px;
+}
+
+/* Icon items */
+.icon-list li.icon {
+  list-style: none;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.icon-list li.icon .material-icons {
+  font-size: 20px;
+  color: #555; /* match sidebar styling */
+  margin-top: 2px; /* optical alignment with text */
+}
+
+/* Data Sources List */
+.data-sources-list {
+  list-style: none;
+  padding-left: 0;
+  margin: 10px 0;
+}
+
+.data-sources-list li {
+  margin-bottom: 12px;
+  font-size: 16px;
+  line-height: 1.5;
+}
+
+.data-sources-list a {
+  color: #1976d2;
+  text-decoration: none;
+  font-weight: 600;
+  transition: color 0.2s;
+}
+
+.data-sources-list a:hover {
+  color: #1565c0;
+  text-decoration: underline;
 }

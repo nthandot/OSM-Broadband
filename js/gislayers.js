@@ -1,6 +1,9 @@
 // Initialize map
 const map = L.map('map').setView([37.5, -119.5], 6);
 
+// Store initial view for home button
+const initialView = { center: [37.5, -119.5], zoom: 6 };
+
 // Initialize sidebar
 const sidebar = L.control.sidebar({
   autopan: true,
@@ -34,6 +37,42 @@ L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
   subdomains: 'abcd',
   maxZoom: 19
 }).addTo(map);
+
+// Add Home button control
+L.Control.Home = L.Control.extend({
+  options: {
+    position: 'topleft'
+  },
+  onAdd: function(map) {
+    const container = L.DomUtil.create('div', 'leaflet-bar leaflet-control');
+    const homeBtn = L.DomUtil.create('a', 'leaflet-control-home', container);
+    homeBtn.href = '#';
+    homeBtn.title = 'Reset to initial view';
+    homeBtn.innerHTML =
+      '<svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">' +
+      '<path fill="#000" d="M12 3l9 8h-3v9h-5v-6H11v6H6v-9H3z"/>' +
+      '</svg>';
+    homeBtn.style.width = '30px';
+    homeBtn.style.height = '30px';
+    homeBtn.style.lineHeight = '30px';
+    homeBtn.style.textAlign = 'center';
+    homeBtn.style.fontSize = '20px';
+    homeBtn.style.color = '#000';
+    
+    L.DomEvent.on(homeBtn, 'click', L.DomEvent.preventDefault);
+    L.DomEvent.on(homeBtn, 'click', () => {
+      map.setView(initialView.center, initialView.zoom);
+    });
+    
+    return container;
+  }
+});
+
+L.control.home = function(opts) {
+  return new L.Control.Home(opts);
+};
+
+L.control.home().addTo(map);
 
 //Sets orders the z-index of the census tract layer to be on top
 map.createPane('censustractPane');
@@ -353,6 +392,16 @@ document.getElementById("layerDropdown").addEventListener("change", (e) => {
   }
 });
 
+// Legend title button click handlers
+document.querySelectorAll('.legend-title-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const layerName = btn.getAttribute('data-layer');
+    const dropdown = document.getElementById('layerDropdown');
+    dropdown.value = layerName;
+    dropdown.dispatchEvent(new Event('change'));
+  });
+});
+
 // Store chart instance
 let currentChart = null;
 
@@ -381,7 +430,7 @@ function displayCensusTractChart(properties) {
   const tractInfo = document.createElement('div');
   tractInfo.style.marginBottom = '16px';
   const countyName = mergedProps.county_name || mergedProps.county || 'Unknown';
-  tractInfo.innerHTML = `<h3>Census Tract: ${mergedProps.GEOID ?? mergedProps.geoid ?? 'Unknown'}</h3><p style="margin: 4px 0; font-size: 14px; font-weight: bold;">County: ${countyName}</p>`;
+  tractInfo.innerHTML = `<h3>Census Tract: ${mergedProps.GEOID ?? mergedProps.geoid ?? 'Unknown'}</h3><p style="margin: 4px 0; font-size: 16px; font-weight: bold;">County: ${countyName}</p>`;
   
 
   chartContainer.innerHTML = '';
@@ -444,6 +493,7 @@ function displayCensusTractChart(properties) {
   // ---- Canvas ----
   const canvas = document.createElement('canvas');
   canvas.id = 'tractChart';
+  canvas.style.maxHeight = '300px';
   chartContainer.appendChild(canvas);
 
   if (currentChart) currentChart.destroy();
@@ -463,7 +513,7 @@ function displayCensusTractChart(properties) {
           const label = (Number.isFinite(value) ? value.toFixed(1) : value) + '%';
           const position = element.getCenterPoint ? element.getCenterPoint() : { x: element.x, y: element.y };
           ctx.save();
-          ctx.font = '12px Arial';
+          ctx.font = '16px Arial';
           ctx.fillStyle = '#000';
           ctx.textAlign = 'center';
           ctx.textBaseline = 'bottom';
@@ -499,23 +549,29 @@ function displayCensusTractChart(properties) {
     plugins: [dataLabelPlugin],
     options: {
       responsive: true,
+      maintainAspectRatio: false,
       scales: {
         y: {
           beginAtZero: true,
           max: 100,
           ticks: {
-            callback: v => v + '%'
+            callback: v => v + '%',
+            font: { size: 16 }
           },
           title: {
             display: true,
-            text: 'Percent of Households'
+            text: 'Percent of Households',
+            font: { size: 16 }
           }
         }
       },
       plugins: {
         title: {
           display: true,
-          text: 'Percent of Households per Tract by Download Speeds and Fiber Access'
+          fullSize: true,
+          text: ['Percent of Households Per Tract',
+           'By Download Speeds And Fiber Access'],
+          font: { size: 20 }
         },
         tooltip: {
           callbacks: {
@@ -523,6 +579,11 @@ function displayCensusTractChart(properties) {
               ctx.raw === null || !Number.isFinite(ctx.raw)
                 ? `${ctx.dataset.label}: No data`
                 : `${ctx.dataset.label}: ${ctx.raw.toFixed(1)}%`
+          }
+        },
+        legend: {
+          labels: {
+            font: { size: 16 }
           }
         }
       }
@@ -534,6 +595,7 @@ const categoryValue = mergedProps.Category ?? 'Unknown';
 const categoryDiv = document.createElement('div');
 categoryDiv.style.marginTop = '12px';
 categoryDiv.style.fontWeight = 'bold';
+categoryDiv.style.fontSize = '16px';
 categoryDiv.textContent = `Category: ${categoryValue}`;
 
 chartContainer.appendChild(categoryDiv);
@@ -543,6 +605,7 @@ const totalHouseholds = mergedProps.TotalHouseholdsinTracts ?? mergedProps.Total
 const householdsDiv = document.createElement('div');
 householdsDiv.style.marginTop = '8px';
 householdsDiv.style.fontWeight = 'bold';
+householdsDiv.style.fontSize = '16px';
 householdsDiv.textContent = `Total Households: ${totalHouseholds}`;
 
 chartContainer.appendChild(householdsDiv);
@@ -550,18 +613,12 @@ chartContainer.appendChild(householdsDiv);
 // ---- Footnote below chart ----
 const noteDiv = document.createElement('div');
 noteDiv.style.marginTop = '10px';
-noteDiv.style.fontSize = '12px';
+noteDiv.style.fontSize = '16px';
 noteDiv.style.lineHeight = '1.4';
-noteDiv.textContent = 'Percents are calculated by the number of households with access to the stated speeds. They do not total 100% because the remaining households could be served by other broadband connections such as wireless or satellite not modeled here.';
+noteDiv.style.fontStyle = 'italic';
+noteDiv.style.color = '#555';
+noteDiv.textContent = '*Percentages are calculated by the number of households in a tract with access to the stated speeds or service. The total across all three scenarios may not add up to 100% because households may be served by other broadband connections, such as wireless or satellite, not modeled here.';
 chartContainer.appendChild(noteDiv);
-
-// ---- Additional explanation ----
-const noteDiv2 = document.createElement('div');
-noteDiv2.style.marginTop = '10px';
-noteDiv2.style.fontSize = '12px';
-noteDiv2.style.lineHeight = '1.4';
-noteDiv2.textContent = 'Zero percent of households in a tract means that there are no households in the tract that are serviced by copper (10), cable (40), or Fiber (50), with a max download speed of less than 10 Mbps. This means that households could have access to other broadband services, such as wireless or satellite, which may or may not fall under the 10 Mbps threshold. Additionally, some census blocks are serviced by one of the three broadband codes noted above and have download speeds under 10 Mbps, but because the census block contains no households, when summed to the tract level, the analysis shows that 0% of households fall under the 10 Mbps threshold. ';
-chartContainer.appendChild(noteDiv2);
 
 }
 
