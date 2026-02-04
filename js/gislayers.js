@@ -384,8 +384,8 @@ document.getElementById("layerDropdown").addEventListener("change", (e) => {
     if (!isBayAreaOnly) {
       filterCensusTractsByRegion('bayarea');
     } else {
-      // For Bay Area layers, reapply region filter to ensure proper zoom and filtering
-      filterCensusTractsByRegion(currentRegionFilter);
+      // For Bay Area layers, always zoom to Bay Area and apply Bay Area filter
+      filterCensusTractsByRegion('bayarea');
     }
   } else {
     currentActiveLayer = null;
