@@ -27,67 +27,47 @@ code10 <- code10 %>% select(max_advertised_download_speed,max_advertised_upload_
 code40 <- code40 %>% select(max_advertised_download_speed,max_advertised_upload_speed,technology,block_geoid)
 code50 <- code50 %>% select(max_advertised_download_speed,max_advertised_upload_speed,technology,block_geoid)
 
-
-
-#----test: merges the three datasets and deletes duplicate blocks keeping only the ones with the highest speeds
-my_data1 <- bind_rows(code10,code40,code50) %>% 
-  #arrange(block_geoid, desc(max_advertised_download_speed )) %>% 
+#---merges the three datasets and deletes duplicate blocks keeping only the ones with the highest speeds
+fcc_data <- bind_rows(code10,code40,code50) %>% 
+  arrange(block_geoid, desc(max_advertised_download_speed )) %>% 
   distinct(block_geoid, .keep_all = TRUE)
 
 #Renames columns
-my_data1 <- my_data1 %>% rename(census_block =block_geoid, 
+fcc_data <- fcc_data %>% rename(census_block =block_geoid, 
                                 max_down =max_advertised_download_speed, 
                                 max_up =max_advertised_upload_speed,
                                 tech_code = technology)
 
-#--try this method to delete duplicates to determine if there is a different result ---old code that is unnecessary----#
-#delete duplicate census blocks leaving only blocks with highest value
-my_data1 <- my_data1 %>%
-  group_by(census_block) %>%
-  filter (max_down == max(max_down)) %>%
-  ungroup()
-my_data1 <- my_data1[!duplicated(my_data1$census_block),]
-#----end old code
-
-
-#-----edits made until here-------
-
-Census_variables <- load_variables(2020,"dhc")
-view(Census_variables)
-#Pulls 2021 CA household counts by census block
-CnsBlkHousehold <- get_decennial(
-  geography = "block",
-  variables = "H1_001N", #total number of households
-  state ="CA",
-  #county = "Alameda",
-  sumfile= 'pl',
-  year = 2020,
-)
-#Pulls 2021 CA household counts by census tract
-CnsTctHousehold <- get_decennial(
-  geography = "tract",
-  variables = "H1_001N", #total number of households
-  state ="CA",
-  #county = "Alameda",
-  sumfile= 'pl',
-  year = 2020,
-)
-#Removes Columns from census household dataframe
-CnsTctHousehold <-subset (CnsTctHousehold, select =-c(variable,NAME))
-CnsBlkHousehold <-subset (CnsBlkHousehold, select =-c(variable,NAME))
-CnsTctHousehold$census_tract <- substr(CnsTctHousehold$GEOID,0,11)
-
-CnsBlkHousehold <- CnsBlkHousehold %>% rename(census_block =GEOID,
-                                              household_num = value)
-
 #converts census blocks to tracts and county id's text
 #https://www.census.gov/programs-surveys/geography/guidance/geo-identifiers.html
 #Census Tract State (2)+County(3)+Tract(6)
-my_data1$census_block <- as.character(my_data1$census_block)
-my_data1$census_block <- paste0("0",my_data1$census_block) #adds a leading zero to block code
-my_data1$census_tract <- substr(my_data1$census_block,0,11)
-my_data1$CountyId <- substr(my_data1$census_block,0,5)
+fcc_data$census_block <- as.character(fcc_data$census_block)
+fcc_data$census_block <- paste0("0",fcc_data$census_block) #adds a leading zero to block code
+fcc_data$census_tract <- substr(fcc_data$census_block,0,11)
+fcc_data$CountyId <- substr(fcc_data$census_block,0,5)
 
+#loads census household data
+CnsBlkHousehold <- read.csv("C:/Users/nthando.thandiwe/Documents/OBI/Equity Metrics/OSM/OSM Broadband Box Files/data/raw/CensusBlock2020households.csv")
+CnsTctHousehold <- read.csv("C:/Users/nthando.thandiwe/Documents/OBI/Equity Metrics/OSM/OSM Broadband Box Files/data/raw/CensusTract2020households.csv")
+CnsBlkGroupHousehold <- read.csv("/Users/nthando.thandiwe/Documents/OBI/Equity Metrics/OSM/OSM Broadband Box Files/data/raw/CensusBlockGroup2020households.csv")
+
+
+#Removes Columns from census household dataframe
+CnsTctHousehold <-subset (CnsTctHousehold, select =-c(variable,NAME))
+CnsTctHousehold$census_tract <- substr(CnsTctHousehold$GEOID,0,11)
+CnsTctHousehold$census_tract <- paste0("0",CnsTctHousehold$census_tract) #adds a leading zero to block code
+
+CnsBlkHousehold <-subset (CnsBlkHousehold, select =-c(variable,NAME))
+CnsBlkHousehold <- CnsBlkHousehold %>% rename(census_block =GEOID,
+                                              household_num = value)
+CnsBlkHousehold$census_block <- paste0("0",CnsBlkHousehold$census_block) #adds a leading zero to block code
+CnsBlkHousehold$block_group <- substr(CnsBlkHousehold$census_block,0,12)
+
+#Filters and cleans block group dataset
+CnsBlkGroupHousehold <- CnsBlkGroupHousehold %>% 
+  select(GEOID,households)
+CnsBlkGroupHousehold$block_group <- as.character(CnsBlkGroupHousehold$GEOID)
+CnsBlkGroupHousehold$block_group <- paste0("0",CnsBlkGroupHousehold$block_group)
 
 #Link to field names and descriptions: https://www.fcc.gov/general/explanation-broadband-deployment-data 
 #Column StateAbbr: 2-letter state abbreviation used by the US Postal Service
@@ -95,96 +75,127 @@ my_data1$CountyId <- substr(my_data1$census_block,0,5)
 #TechCode: 2-digit code indicating the Technology of Transmission for broadband service
 
 #Shows all column types
-#str(my_data1)
+#str(fcc_data)
 
-
-#for each row if Broadband speed >6 and nondistinct delete row
-list_over10 <- my_data1 %>%
+#--------Filters fcc data to blocks between 10 and 25 Mbps---------
+#Creates distinct list of census blocks greater than 10Mbps
+list_over10 <- fcc_data %>%
   filter(max_down>=10)
 
-#Creates distinct list of census blocks greater than 6Mbps
-#list_over10 <- distinct(list_over10,census_block)
-
 #Removes CensusBlocks over 10Mbps from df 
-clean_under10 <- my_data1 %>% 
+clean_under10 <- fcc_data %>% 
   filter(!census_block %in% list_over10$census_block)
 
-#Filters to CA only, Consumer Service Provided and Download speeds between 6 and 25 Mbps
-list_over25<- my_data1 %>%
-  filter(max_down >=25)
+#Creates distinct list over 25
+list_over25<- fcc_data %>%
+  filter(max_down >25)
 list_over25 <- distinct(list_over25, census_block)
-
-clean_10to25 <- my_data1 %>%
+#Creates fcc data set of blocks with coverage between 10 and 25 Mbps
+clean_10to25 <- fcc_data %>%
   filter(!census_block %in% clean_under10$census_block & !census_block %in% list_over25$census_block)
 
 #Data validation
 blkIds6to25 <- clean_10to25$census_block %>% unique ()
 blkIdsOver25 <- list_over25$census_block %>% unique ()
-blkIdsAll <- my_data1$census_block %>% unique()
+blkIdsAll <- fcc_data$census_block %>% unique()
 
 #Merge Household with Broadband dataframe and deletes any tracts with zero households
 clean10to25_and_household <-merge(clean_10to25,CnsBlkHousehold, by="census_block")
-clean10to25_and_household <- clean10to25_and_household %>%
-  filter(household_num > 0)
 
-#checks number of blocks in merge (difference is the number blocks with no households)
-blkIduner10wHouseold <-clean10to25_and_household$BlockCode %>% unique()
-#checks number of blocks in bay area
-BayAreaBlocks10_25 <- clean10to25_and_household %>%filter(clean10to25_and_household$CountyId == "06001" | 
-                                                               clean10to25_and_household$CountyId == "06013"| 
-                                                               clean10to25_and_household$CountyId == "06041"|
-                                                               clean10to25_and_household$CountyId == "06055"|
-                                                               clean10to25_and_household$CountyId == "06085"|
-                                                               clean10to25_and_household$CountyId == "06075"|
-                                                               clean10to25_and_household$CountyId == "06081"|
-                                                               clean10to25_and_household$CountyId == "06095"|
-                                                               clean10to25_and_household$CountyId == "06097")
+#Creates df with bay area counties
+BayAreaCounties <- data.frame(CountyId = c("6001","6013","6041","6055","6085", "6075","6081","6095","6097"))
 
-#-----data validation ----- check if needed
+#-------sum by block group--------------------------------------------------------
+ten_25_blockgroup <- clean10to25_and_household %>%
+  group_by(block_group) %>%
+  summarise(BlockHHs10_25 = sum(household_num, na.rm = TRUE),
+            .groups = "drop")
+
+ten_25_blockgroup <- ten_25_blockgroup%>%
+  filter(!duplicated(block_group))
+
+BlockGroupData <- left_join(CnsBlkGroupHousehold, ten_25_blockgroup, by ="block_group")
+
+BlockGroupData$PercentHH_10_25 <- BlockGroupData$BlockHHs10_25/BlockGroupData$households
+#Converts Na values to 0
+BlockGroupData$PercentHH_10_25[is.na(BlockGroupData$PercentHH_10_25)] <-0
+
+#puts back in county and census tract Id's
+BlockGroupData$CountyId <- substr(BlockGroupData$GEOID,1,4) 
+BlockGroupData$census_tract <- substr(BlockGroupData$block_group, 0,11)
+
+#-----data check ---- 
+blockgroupcheck <- BlockGroupData$block_group %>% unique()
+
+#merge with tcac 
+BG_10_25andTCAC <- left_join(BlockGroupData,tcacData,by ="census_tract")
+BG_10_25andTCAC <- BG_10_25andTCAC %>%  
+  rename(OpportunityCategory = Opportunity.Category,
+         OpportunityScore = Opportunity.Score,
+         CountyName = County.Name,
+  )
+BG_10_25andTCAC <- BG_10_25andTCAC %>% 
+  filter(PercentHH_10_25 >0,
+         OpportunityCategory == "Low Resource")
+
+#Reorders columns
+BG_10_25andTCAC <- BG_10_25andTCAC %>% 
+  relocate(block_group,census_tract,CountyId,.after = GEOID)
+
+#Deletes unnecessary columns
+BG_10_25andTCAC <- BG_10_25andTCAC %>% 
+  select(GEOID,block_group,census_tract,CountyId,households,BlockHHs10_25,PercentHH_10_25, OpportunityCategory,OpportunityScore,CountyName)
+
+BG_10_25andTCAC <- BG_10_25andTCAC %>% filter(CountyId %in%BayAreaCounties$CountyId)
+
+write_xlsx(BG_10_25andTCAC,"/Users/nthando.thandiwe/Documents/OBI/Equity Metrics/OSM/Under10Mbps/BayAreaBlockGroupData10to25.xlsx")
+write.csv(BlockGroupData,"/Users/nthando.thandiwe/Documents/OBI/Equity Metrics/OSM/Under10Mbps/BlockGroupData10to25.csv", row.names = FALSE)
+#-----data validation -----------------------------------check if needed
 #blksbayarea <- CountbayAreaBlocks6_25$census_block %>% unique()
-#trctsbayarea <- CountbayAreaBlocks6_25$CensusTract %>% unique()
+trcts <- clean10to25_and_household$census_tract %>% unique()
 #CountbayAreaBlocks6_25 <- CountbayAreaBlocks6_25[!duplicated(CountbayAreaBlocks6_25$BlockCode),]
 
 #Sums household by tracts
-BayAreaBlocks10_25 <- BayAreaBlocks10_25 %>%
+clean10to25_and_household  <- clean10to25_and_household  %>%
   group_by(census_tract)%>%
   mutate(TractHHs10_25=sum(household_num),na.rm=TRUE)%>%
   ungroup
 
-#-----may be a good check----Counts number of blocks in a tract with broadband between 6 and 25mbps
-#BayAreaBlocks10_25 <-BayAreaBlocks10_25 %>%
- # group_by(census_tract)%>%
-  #mutate(Blocks10_25inTract =sum(Consumer))%>%
-  #ungroup
-
 #creates new tract level df
-CnsTract10to25HHs <- BayAreaBlocks10_25%>%
+CnsTractData <- clean10to25_and_household%>%
   filter(!duplicated(census_tract))
 
 
 #Merge tract household and block data
-CnsTractData <- left_join(CnsTract10to25HHs,CnsTctHousehold, by ="census_tract")
+CnsTractData <- left_join(CnsTctHousehold,CnsTractData, by ="census_tract")
 CnsTractData$PercentHH10to25 <- CnsTractData$TractHHs10_25/CnsTractData$value
-CnsTractData <- subset(CnsTractData, select =c(census_tract,TractHHs10_25,value,PercentHH10to25))
+#Converts Na values to 0
+CnsTractData$PercentHH10to25[is.na(CnsTractData$PercentHH10to25)] <-0
+CnsTractData$CountyId <- substr(CnsTractData$census_tract,2,5)
+CnsTractData <- subset(CnsTractData, select =c(census_tract,CountyId,TractHHs10_25,value,PercentHH10to25))
 
 #Merge tcac data
-Broadband10_25andTCAC <- left_join(CnsTractData, tcacData, by ="census_tract")
-Broadband10_25andTCAC <- Broadband10_25andTCAC %>% filter(Opportunity.Category == "Low Resource")
+Broadband10_25andTCAC <- left_join(tcacData,CnsTractData, by ="census_tract")
+Broadband10_25andTCAC <- Broadband10_25andTCAC %>% filter(CountyId %in%BayAreaCounties$County)
+#deletes tracts where there are no households with under 10 mbps
+Broadband10_25andTCAC <- Broadband10_25andTCAC%>%
+  filter(PercentHH10to25 > 0)
 
-write.csv(CnsTractData, "/Users/nthando.thandiwe/Documents/OBI/Equity Metrics/OSM/BayAreaAlltracts10_25.csv", row.names=FALSE)
+write.csv(CnsTractData, "/Users/nthando.thandiwe/Documents/OBI/Equity Metrics/OSM/CAtracts10_25.csv", row.names=FALSE)
 write.csv(Broadband10_25andTCAC, "/Users/nthando.thandiwe/Documents/OBI/Equity Metrics/OSM/Broadband10_25andTCAC.csv", row.names=FALSE)
 
-#Table of household by county
+check <- fcc_data %>% filter(census_tract== "06075061000")
+#-----Table of household by county
 #totals number of households with 6 to 25 Mbps
-CnsTractData$countyId <- substr(CnsTractData$GEOID,3,5)
+CnsTractData$countyId <- substr(CnsTractData$census_tract,3,5)
 HHbyCounty <- CnsTractData %>% 
   filter(countyId %in% c("001","013","041","055","075","081","085","095","097")) %>%
   group_by(countyId) %>% 
   summarize(
-    CountyHHs6to25 = sum(TractHHs6_25)
+    CountyHHs10to25 = sum(TractHHs10_25)
   )
 
-CnsTctHousehold$countyId <- substr(CnsTctHousehold$GEOID,3,5)
+CnsTctHousehold$countyId <- substr(CnsTctHousehold$census_tract,3,5)
 
 #totals number of households in bay area counties
 TotalHHsbyCounty <- CnsTctHousehold %>% 
@@ -194,15 +205,9 @@ TotalHHsbyCounty <- CnsTctHousehold %>%
     totalCountyHH = sum(value)
   )
 HHCountytable <- left_join(HHbyCounty,TotalHHsbyCounty, by="countyId")
-HHCountytable$pctCountyHH <- (HHCountytable$CountyHHs6to25/HHCountytable$totalCountyHH)*100
-HHCountytable <- HHCountytable %>% adorn_totals("row","col")
-#old code
+HHCountytable$pctCountyHH <- (HHCountytable$CountyHHs10to25/HHCountytable$totalCountyHH)*100
 
 
-hist(CountbayAreaBlocks$CensusTractNum)
-ggplot(CountbayAreaBlocks, aes (x=BlockCode,y=CensusTractNum))
-FreqTracts<- table(CountbayAreaBlocks$CensusTractNum)
-print(FreqTracts)
 
 
 

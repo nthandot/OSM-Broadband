@@ -60,6 +60,20 @@ html, body {
   color: white;
 }
 
+.map-title-geo {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+.map-title-geo.active {
+  background: rgba(255, 255, 255, 0.15);
+}
+
 .map-title-logo {
   height: 30px;
   width: auto;
@@ -256,6 +270,56 @@ html, body {
   border-radius: 4px;
   cursor: pointer;
   transition: background-color 0.3s;
+}
+
+.race-header h3 {
+  margin: 0 0 4px 0;
+}
+
+.race-subtitle {
+  margin: 0 0 12px 0;
+  font-size: 16px;
+  font-weight: bold;
+}
+
+.race-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 15px;
+}
+
+.race-table th,
+.race-table td {
+  padding: 6px 8px;
+  text-align: left;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.race-label {
+  width: 20%;
+  font-weight: 600;
+}
+
+.race-bar-cell {
+  width: 55%;
+}
+
+.race-bar-wrap {
+  width: 100%;
+  height: 12px;
+  background: #f0f0f0;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.race-bar {
+  height: 100%;
+  background: #1976d2;
+}
+
+.race-value {
+  width: 25%;
+  font-weight: 600;
 }
 
 .sidebar-button:hover {

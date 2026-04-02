@@ -43,36 +43,84 @@ my_data1$census_block <- paste0("0",my_data1$census_block) #adds a leading zero 
 my_data1$census_tract <- substr(my_data1$census_block,0,11)
 my_data1$CountyId <- substr(my_data1$census_block,0,5)
 
-#------loads census data --------#
+#------loads census tract data --------#
 Census_variables <- load_variables(2020,"dhc")
-#view(Census_variables)
+view(Census_variables)
 #Pulls 2021 CA household counts by census block
 CnsTctHousehold <- get_decennial(
   geography = "tract",
-  variables = "H1_001N", #total number of households
+  variables = c(
+    households = "H1_001N", #total number of households,
+    total_pop = "P1_001N",
+    white = "P1_003N",
+    black = "P1_004N",
+    asian = "P1_006N",
+    american_indian_alaska_native = "P1_005N",
+    hawaian_pacific_island = "P1_007N",
+    hispanic = "P2_002N"
+  ),
   state ="CA",
   sumfile= 'pl',
   year = 2020,
 )
+CnsTctHousehold <- CnsTctHousehold %>%
+  select(GEOID, NAME, variable, value) %>%
+  tidyr::pivot_wider(names_from = variable, values_from = value)
 
+#-------loads census block data----------------------#
 Census_variables <- load_variables(2020,"dhc")
 #view(Census_variables)
 #Pulls 2021 CA household counts by census block
 CnsBlkHousehold <- get_decennial(
   geography = "block",
-  variables = "H1_001N", #total number of households
+  variables = c(
+    households = "H1_001N", #total number of households,
+    total_pop = "P1_001N",
+    white = "P1_003N",
+    black = "P1_004N",
+    asian = "P1_006N",
+    american_indian_alaska_native = "P1_005N",
+    hawaian_pacific_island = "P1_007N",
+    hispanic = "P2_002N"
+  ),
   state ="CA",
   sumfile= 'pl',
   year = 2020,
 )
+CnsBlkHousehold <- CnsBlkHousehold %>%
+  select(GEOID, NAME, variable, value) %>%
+  tidyr::pivot_wider(names_from = variable, values_from = value)
+
+#-------cenusus block group data-----------
+CnsBlkGroupHousehold <- get_decennial(
+  geography = "block group",
+  variables = c(
+    households = "H1_001N", #total number of households,
+    total_pop = "P1_001N",
+    white = "P1_003N",
+    black = "P1_004N",
+    asian = "P1_006N",
+    american_indian_alaska_native = "P1_005N",
+    hawaian_pacific_island = "P1_007N",
+    hispanic = "P2_002N"
+  ),
+  state ="CA",
+  sumfile= 'pl',
+  year = 2020,
+)
+CnsBlkGroupHousehold <- CnsBlkGroupHousehold %>%
+  select(GEOID, NAME, variable, value) %>%
+  tidyr::pivot_wider(names_from = variable, values_from = value)
 
 #Removes Columns from census household dataframe
-CnsTctHousehold <-subset (CnsTctHousehold, select =-c(variable,NAME))
+CnsTctHousehold <-subset (CnsTctHousehold, select =-c(NAME))
 CnsTctHousehold$census_tract <- substr(CnsTctHousehold$GEOID,0,11)
 
-CnsBlkHousehold <-subset (CnsBlkHousehold, select =-c(variable,NAME))
-CnsBlkHousehold <- CnsBlkHousehold %>% rename(census_block =GEOID,
-                                              household_num = value)
+CnsBlkHousehold <-subset (CnsBlkHousehold, select =-c(NAME))
+CnsBlkHousehold <- CnsBlkHousehold %>% rename(census_block =GEOID)
+
+CnsBlkGroupHousehold <-subset (CnsBlkGroupHousehold, select =-c(NAME))
+CnsBlkGroupHousehold <- CnsBlkGroupHousehold %>% rename(census_block =GEOID)
 
 #-------filters FCC data to under 10 mbps -----#
 #Creates distinct list of census blocks greater than 6Mbps
@@ -95,7 +143,7 @@ head(clean_under10, n=10)
 #Merge Household with Broadband dataframe and deletes any blocks with zero households
 Under10_and_household <-merge(clean_under10,CnsBlkHousehold, by="census_block")
 Under10_and_household <- Under10_and_household %>%
-  filter(household_num > 0)
+  filter(households > 0)
 
 #blkIduner6wHouseold <-Under6_and_household$census_block %>% unique() #don't need just a quality check
 
@@ -113,10 +161,13 @@ CountybayAreaBlocks <- Under10_and_household %>%filter(Under10_and_household$Cou
 blksbayarea <- CountybayAreaBlocks$BlockCode %>% unique()
 trctsbayarea <- CountybayAreaBlocks$CensusTract %>% unique()
 
-#Sums household by tracts
+#----next step aggregate up to block group ----------
+
+
+#-------Sums household by tracts
 CountybayAreaBlocks <- CountybayAreaBlocks %>%
   group_by(census_tract)%>%
-  mutate(TractHHsUnder10=sum(household_num),na.rm=TRUE)%>%
+  mutate(TractHHsUnder10=sum(households),na.rm=TRUE)%>%
   ungroup
 
 #delete duplicates for merge ---- don't think this is necessary
@@ -130,6 +181,8 @@ CnsTractData <- left_join(CnsTractUnder10HHs,CnsTctHousehold, by ="census_tract"
 CnsTractData$PercentHH_under10 <- CnsTractData$TractHHsUnder10/CnsTractData$value
 CnsTractData <- subset(CnsTractData, select =c(census_tract,TractHHsUnder10,value,PercentHH_under10))
 
+#-----------
+
 #Merge tcac data
 Under10andTCAC <- left_join(CnsTractData, tcacData, by ="census_tract")
 Under10andTCAC <- Under10andTCAC %>% filter(Opportunity.Category == "Low Resource")
@@ -137,6 +190,7 @@ Under10andTCAC <- Under10andTCAC %>% filter(Opportunity.Category == "Low Resourc
 #Writes CSV File
 write.csv(Under10andTCAC, "/Users/nthando.thandiwe/Documents/OBI/Equity Metrics/OSM/Under10Mbps/TractsUnder10andTCAC.csv", row.names=FALSE)
 write.csv(CnsTractData,"/Users/nthando.thandiwe/Documents/OBI/Equity Metrics/OSM//Under10Mbps/AllBayTractsUnder10.csv", row.names=FALSE)
+write.csv(CountybayAreaBlocks,"/Users/nthando.thandiwe/Documents/OBI/Equity Metrics/OSM//Under10Mbps/BayBlocksUnder10.csv", row.names=FALSE)
 
 #--------Creates tables of HHs 
 CnsTractData$countyId <- substr(CnsTractData$GEOID,3,5)
